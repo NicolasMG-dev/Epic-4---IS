@@ -68,6 +68,29 @@ describe("AppLayout", () => {
     expect(screen.getByTestId("app-shell")).toHaveAttribute("data-navigation", "general");
   });
 
+  describe("modo standalone de Epic 4", () => {
+    beforeEach(() => vi.stubEnv("NEXT_PUBLIC_STANDALONE_EPIC4", "true"));
+    afterEach(() => vi.unstubAllEnvs());
+
+    it("muestra Publicar vacante sin sesión y sin ir al login", () => {
+      sessionStorage.clear();
+      route.pathname = "/recruiters/job-offers/new";
+      render(<AppLayout><p>recruiters-content</p></AppLayout>);
+
+      expect(screen.getByTestId("app-shell")).toContainElement(screen.getByText("recruiters-content"));
+      expect(replace).not.toHaveBeenCalled();
+    });
+
+    it("las demás secciones siguen pidiendo sesión", () => {
+      sessionStorage.clear();
+      window.history.replaceState({}, "", "/profile");
+      render(<AppLayout><p>page-content</p></AppLayout>);
+
+      expect(screen.queryByText("page-content")).toBeNull();
+      expect(replace).toHaveBeenCalledWith("/login?next=%2Fprofile");
+    });
+  });
+
   it("sin sesión no muestra la página privada y lleva al login con la ruta pedida", () => {
     sessionStorage.clear();
     window.history.replaceState({}, "", "/profile?tab=cv");
