@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -13,6 +14,7 @@ import {
   MODALITIES,
   TITLE_ALLOWED_REGEX,
   TITLE_DISALLOWED_CHARS_REGEX,
+  VACANCY_MESSAGES,
 } from "../constants/vacancies.constants";
 import type {
   Modality,
@@ -50,6 +52,7 @@ export function InformationStep({
   onCancel,
   onContinue,
 }: InformationStepProps) {
+  const [isVacancyLimitReached, setIsVacancyLimitReached] = useState(false);
   const handleTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const sanitized = e.target.value.replace(TITLE_DISALLOWED_CHARS_REGEX, "").slice(0, MAX_TITLE_CHARS);
     updateField("title", sanitized);
@@ -74,15 +77,22 @@ export function InformationStep({
   const handleVacancyChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const digits = e.target.value.replace(/\D/g, "");
     if (digits === "") {
+      setIsVacancyLimitReached(false);
       updateField("vacancyCount", "");
       return;
     }
     const count = Number.parseInt(digits, 10);
+    setIsVacancyLimitReached(count > MAX_VACANCIES);
     updateField("vacancyCount", Math.min(count, MAX_VACANCIES).toString());
   };
 
   const handleSalaryChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const rawValue = e.target.value.replace(/[^\d-]/g, "");
+    const normalized = e.target.value
+      .replace(/[^\d\s-]/g, "")
+      .replace(/^[\s-]+/, "")
+      .replace(/[\s-]+/g, "-");
+    const isDeleting = e.target.value.length < conditions.salary.length;
+    const rawValue = isDeleting ? normalized.replace(/-$/, "") : normalized;
     if (!rawValue) {
       updateField("salary", "");
       return;
@@ -96,19 +106,22 @@ export function InformationStep({
 
   const handleSalaryBlur = () => validateField("salary");
 
+  const vacancyCountMessage =
+    errors.vacancyCount ?? (isVacancyLimitReached ? VACANCY_MESSAGES.maxVacancies : undefined);
+
   return (
     <div className="mt-6 rounded-xl border border-border bg-surface">
       <div className="border-b border-border px-6 py-4">
         <h2 className="text-[22px] font-bold text-ink">
-          Informacion y condiciones de la oferta
+          Información y condiciones de la oferta
         </h2>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 px-6 py-6 md:grid-cols-2">
-        <div className="md:col-span-2">
+      <div className="grid grid-cols-1 gap-5 px-6 py-6 lg:grid-cols-2">
+        <div className="lg:col-span-2">
           <div className="flex justify-between">
             <Label htmlFor="title" className="text-[12.5px] font-semibold">
-              Titulo del puesto <span className="text-danger">*</span>
+              Título del puesto <span className="text-danger">*</span>
             </Label>
             <span className="text-[11px] text-slate-400">{conditions.title.length}/{MAX_TITLE_CHARS}</span>
           </div>
@@ -177,7 +190,7 @@ export function InformationStep({
           </Label>
           <Select value={conditions.contractType} onValueChange={(value) => updateField("contractType", value ?? "")}>
             <SelectTrigger id="contractType" className="mt-1.5 w-full">
-              <SelectValue  placeholder="Selecciona una opcion" />
+              <SelectValue  placeholder="Selecciona una opción" />
             </SelectTrigger>
             <SelectContent>
               {CONTRACT_TYPES.map((type) => (
@@ -192,11 +205,11 @@ export function InformationStep({
 
         <div>
           <Label htmlFor="category" className="text-[12.5px] font-semibold">
-            Categoria <span className="text-danger">*</span>
+            Categoría <span className="text-danger">*</span>
           </Label>
           <Input 
             id="category" 
-            placeholder="Tecnologia" 
+            placeholder="Tecnología" 
             className="mt-1.5" 
             value={conditions.category} 
             onChange={(event) => updateField("category", event.target.value)} 
@@ -208,7 +221,7 @@ export function InformationStep({
 
         <div>
           <Label htmlFor="vacancyCount" className="text-[12.5px] font-semibold">
-            Numero de vacantes <span className="text-danger">*</span>
+            Número de vacantes <span className="text-danger">*</span>
           </Label>
           <Input 
             id="vacancyCount" 
@@ -219,9 +232,9 @@ export function InformationStep({
             onKeyDown={handleNumberKeyDown}
             inputMode="numeric"
             aria-invalid={Boolean(errors.vacancyCount)}
-            aria-describedby={errors.vacancyCount ? "vacancyCount-error" : undefined}
+            aria-describedby={vacancyCountMessage ? "vacancyCount-error" : undefined}
           />
-          <FieldError fieldId="vacancyCount" message={errors.vacancyCount} />
+          <FieldError fieldId="vacancyCount" message={vacancyCountMessage} />
         </div>
 
         <div>
@@ -247,7 +260,7 @@ export function InformationStep({
           </Label>
           <Input 
             id="languages" 
-            placeholder="Español, ingles intermedio" 
+            placeholder="Español, inglés intermedio" 
             className="mt-1.5"
             value={conditions.languages} 
             onChange={(event) => updateField("languages", event.target.value)} 

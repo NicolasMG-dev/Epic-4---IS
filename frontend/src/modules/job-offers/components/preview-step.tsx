@@ -47,7 +47,7 @@ export function PreviewStep({
         VISTA PREVIA DE LA PUBLICACIÓN
       </h3>
 
-      <div className="mx-auto max-w-3xl rounded-lg border border-t-[4px] border-gray-100 border-t-[#E50000] bg-white p-8 shadow-[0_2px_10px_rgb(0,0,0,0.06)]">
+      <div className="mx-auto max-w-3xl rounded-lg border border-t-[4px] border-gray-100 border-t-[#E50000] bg-white p-5 sm:p-8 shadow-[0_2px_10px_rgb(0,0,0,0.06)]">
         <div className="mb-6 flex items-center gap-4">
           <div className="flex h-[50px] w-[50px] items-center justify-center rounded-lg bg-[#0f172a] text-lg font-bold tracking-wider text-white">
             {company.initials}

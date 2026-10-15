@@ -42,7 +42,7 @@ describe("InformationStep", () => {
   it("muestra los 8 campos del formulario, con salario obligatorio", () => {
     renderStep();
 
-    ["Titulo del puesto", "Enlace de Google Maps", "Categoria", "Numero de vacantes", "Salario", "Idiomas"].forEach((label) =>
+    ["Título del puesto", "Enlace de Google Maps", "Categoría", "Número de vacantes", "Salario", "Idiomas"].forEach((label) =>
       expect(input(new RegExp(label))).toBeInTheDocument(),
     );
     ["Presencial", "Remoto", "Híbrido"].forEach((name) =>
@@ -56,13 +56,13 @@ describe("InformationStep", () => {
 
     expect(screen.getAllByText("Este campo es obligatorio")).toHaveLength(2);
     expect(screen.getByText("El salario debe ser mayor a 0")).toBeInTheDocument();
-    expect(input(/Titulo del puesto/)).toHaveAttribute("aria-invalid", "true");
+    expect(input(/Título del puesto/)).toHaveAttribute("aria-invalid", "true");
     expect(input(/Salario/)).toHaveAttribute("aria-describedby", "salary-error");
   });
 
   it("bloquea en tiempo real los caracteres no permitidos del título", () => {
     renderStep();
-    const title = input(/Titulo del puesto/);
+    const title = input(/Título del puesto/);
 
     expect(fireEvent.keyDown(title, { key: "@" })).toBe(false);
     expect(fireEvent.keyDown(title, { key: "a" })).toBe(true);
@@ -75,7 +75,7 @@ describe("InformationStep", () => {
     const updateField = vi.fn();
     renderStep({ updateField });
 
-    fireEvent.change(input(/Titulo del puesto/), { target: { value: `Dev@ #Ops$ ${"x".repeat(80)}` } });
+    fireEvent.change(input(/Título del puesto/), { target: { value: `Dev@ #Ops$ ${"x".repeat(80)}` } });
 
     const [, value] = updateField.mock.calls[0];
     expect(value).toMatch(/^Dev Ops x+$/);
@@ -85,12 +85,12 @@ describe("InformationStep", () => {
   it("bloquea el título al llegar a 60 caracteres", () => {
     renderStep({ conditions: { ...EMPTY_CONDITIONS, title: "a".repeat(60) } });
 
-    expect(fireEvent.keyDown(input(/Titulo del puesto/), { key: "b" })).toBe(false);
+    expect(fireEvent.keyDown(input(/Título del puesto/), { key: "b" })).toBe(false);
   });
 
   it("solo admite dígitos en el número de vacantes y limita el valor a 500", () => {
     const { updateField } = renderStep();
-    const count = input(/Numero de vacantes/);
+    const count = input(/Número de vacantes/);
 
     expect(fireEvent.keyDown(count, { key: "a" })).toBe(false);
     expect(fireEvent.keyDown(count, { key: "7" })).toBe(true);
@@ -105,12 +105,48 @@ describe("InformationStep", () => {
     expect(updateField).toHaveBeenLastCalledWith("vacancyCount", "12");
   });
 
+  it("avisa del máximo de vacantes al superar 500 y lo quita al corregir", () => {
+    renderStep();
+    const count = input(/Número de vacantes/);
+
+    fireEvent.change(count, { target: { value: "501" } });
+    expect(screen.getByRole("alert")).toHaveTextContent("El número máximo de vacantes por publicación es 500");
+    expect(count).toHaveAttribute("aria-describedby", "vacancyCount-error");
+
+    fireEvent.change(count, { target: { value: "50" } });
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+  });
+
   it("permite borrar el número de vacantes", () => {
     const { updateField } = renderStep({ conditions: { ...EMPTY_CONDITIONS, vacancyCount: "5" } });
 
-    fireEvent.change(input(/Numero de vacantes/), { target: { value: "" } });
+    fireEvent.change(input(/Número de vacantes/), { target: { value: "" } });
 
     expect(updateField).toHaveBeenCalledWith("vacancyCount", "");
+  });
+
+  it("usa el espacio como separador del rango salarial", () => {
+    const { updateField } = renderStep();
+
+    fireEvent.change(input(/Salario/), { target: { value: "6500 8000" } });
+
+    expect(updateField).toHaveBeenLastCalledWith("salary", "Bs 6.500 - 8.000");
+  });
+
+  it("no admite un guion al inicio del salario", () => {
+    const { updateField } = renderStep();
+
+    fireEvent.change(input(/Salario/), { target: { value: "-100" } });
+
+    expect(updateField).toHaveBeenLastCalledWith("salary", "Bs 100");
+  });
+
+  it("permite borrar el separador del rango salarial", () => {
+    const { updateField } = renderStep({ conditions: { ...EMPTY_CONDITIONS, salary: "Bs 6.500 - " } });
+
+    fireEvent.change(input(/Salario/), { target: { value: "Bs 6.500 -" } });
+
+    expect(updateField).toHaveBeenLastCalledWith("salary", "Bs 6.500");
   });
 
   it("aplica la máscara del salario mientras se escribe", () => {
@@ -170,7 +206,7 @@ describe("InformationStep", () => {
   it("envía los textos libres al estado del wizard", () => {
     const { updateField } = renderStep();
 
-    fireEvent.change(input(/Categoria/), { target: { value: "Tecnología" } });
+    fireEvent.change(input(/Categoría/), { target: { value: "Tecnología" } });
     fireEvent.change(input(/Idiomas/), { target: { value: "Español" } });
     fireEvent.change(input(/Enlace de Google Maps/), { target: { value: "https://maps.app.goo.gl/a" } });
 
