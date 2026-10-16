@@ -4,7 +4,12 @@ import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { DESCRIPTION_PREVIEW_CHARS, PUBLISHED_DIALOG_TEXT } from "../constants/vacancies.constants";
+import {
+  DESCRIPTION_PREVIEW_CHARS,
+  INTERNSHIP_CONTRACT_TYPE,
+  PUBLISHED_DIALOG_TEXT,
+  SALARY_TO_BE_AGREED,
+} from "../constants/vacancies.constants";
 import type { CurrentCompany, PublishError } from "../types/job-offer.types";
 import type { VacancyConditions } from "../types/vacancy-conditions.types";
 import { ConfirmDialog } from "./confirm-dialog";
@@ -74,7 +79,7 @@ export function PreviewStep({
             {conditions.vacancyCount} {conditions.vacancyCount === "1" ? "vacante" : "vacantes"}
           </div>
           <div className="rounded-md bg-gray-50 px-4 py-2.5 text-[13px] font-medium text-gray-700">
-            {conditions.salary}
+            {conditions.contractType === INTERNSHIP_CONTRACT_TYPE ? SALARY_TO_BE_AGREED : conditions.salary}
           </div>
         </div>
 

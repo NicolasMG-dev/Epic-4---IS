@@ -1,6 +1,8 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { EMPTY_CONDITIONS } from "../testing/vacancy-fixtures";
+import type { UpdateVacancyField, VacancyConditions } from "../types/vacancy-conditions.types";
 import { InformationStep } from "./information-step";
 
 vi.mock("@/components/ui/select", () => ({
@@ -8,6 +10,7 @@ vi.mock("@/components/ui/select", () => ({
     <div>
       <button type="button" onClick={() => onValueChange?.("Medio tiempo")}>elegir-contrato</button>
       <button type="button" onClick={() => onValueChange?.(null)}>limpiar-contrato</button>
+      <button type="button" onClick={() => onValueChange?.("Pasantía")}>elegir-pasantia</button>
       {children}
     </div>
   ),
@@ -88,7 +91,7 @@ describe("InformationStep", () => {
     expect(fireEvent.keyDown(input(/Título del puesto/), { key: "b" })).toBe(false);
   });
 
-  it("solo admite dígitos en el número de vacantes y limita el valor a 500", () => {
+  it("solo admite dígitos en el número de vacantes sin recortar el valor", () => {
     const { updateField } = renderStep();
     const count = input(/Número de vacantes/);
 
@@ -99,21 +102,24 @@ describe("InformationStep", () => {
     expect(updateField).toHaveBeenLastCalledWith("vacancyCount", "25");
 
     fireEvent.change(count, { target: { value: "9000" } });
-    expect(updateField).toHaveBeenLastCalledWith("vacancyCount", "500");
+    expect(updateField).toHaveBeenLastCalledWith("vacancyCount", "9000");
 
     fireEvent.change(count, { target: { value: "1a2" } });
     expect(updateField).toHaveBeenLastCalledWith("vacancyCount", "12");
   });
 
-  it("avisa del máximo de vacantes al superar 500 y lo quita al corregir", () => {
-    renderStep();
+  it("marca en tiempo real un número de vacantes mayor a 500", () => {
+    renderStep({ conditions: { ...EMPTY_CONDITIONS, vacancyCount: "501" } });
     const count = input(/Número de vacantes/);
 
-    fireEvent.change(count, { target: { value: "501" } });
     expect(screen.getByRole("alert")).toHaveTextContent("El número máximo de vacantes por publicación es 500");
+    expect(count).toHaveAttribute("aria-invalid", "true");
     expect(count).toHaveAttribute("aria-describedby", "vacancyCount-error");
+  });
 
-    fireEvent.change(count, { target: { value: "50" } });
+  it("no marca error con 500 vacantes", () => {
+    renderStep({ conditions: { ...EMPTY_CONDITIONS, vacancyCount: "500" } });
+
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
   });
 
@@ -123,6 +129,32 @@ describe("InformationStep", () => {
     fireEvent.change(input(/Número de vacantes/), { target: { value: "" } });
 
     expect(updateField).toHaveBeenCalledWith("vacancyCount", "");
+  });
+
+  it("mantiene el cursor en su lugar al editar el monto mínimo", () => {
+    function StatefulStep() {
+      const [conditions, setConditions] = useState<VacancyConditions>({ ...EMPTY_CONDITIONS, salary: "Bs 6.500 - 8.000" });
+      const updateField: UpdateVacancyField = (field, value) => setConditions((prev) => ({ ...prev, [field]: value }));
+      return (
+        <InformationStep
+          conditions={conditions}
+          errors={{}}
+          updateField={updateField}
+          selectModality={vi.fn()}
+          validateField={vi.fn()}
+          onCancel={vi.fn()}
+          onContinue={vi.fn()}
+        />
+      );
+    }
+    render(<StatefulStep />);
+    const salary = input(/Salario/) as HTMLInputElement;
+
+    salary.setSelectionRange(8, 8);
+    fireEvent.change(salary, { target: { value: "Bs 6.50 - 8.000", selectionStart: 7, selectionEnd: 7 } });
+
+    expect(salary.value).toBe("Bs 650 - 8.000");
+    expect(salary.selectionStart).toBe(6);
   });
 
   it("usa el espacio como separador del rango salarial", () => {
@@ -166,14 +198,48 @@ describe("InformationStep", () => {
     expect(updateField).toHaveBeenLastCalledWith("salary", "");
   });
 
-  it("valida el salario y el enlace de Maps al perder el foco", () => {
+  it("valida el salario al perder el foco", () => {
     const { validateField } = renderStep();
 
     fireEvent.blur(input(/Salario/));
-    expect(validateField).toHaveBeenCalledWith("salary");
 
-    fireEvent.blur(input(/Enlace de Google Maps/));
-    expect(validateField).toHaveBeenCalledWith("mapsLink");
+    expect(validateField).toHaveBeenCalledWith("salary");
+  });
+
+  it("marca en tiempo real un enlace que no es de Google Maps oficial", () => {
+    renderStep({ conditions: { ...EMPTY_CONDITIONS, mapsLink: "https://maps.google.com/URLnoEXISTE" } });
+
+    expect(screen.getByRole("alert")).toHaveTextContent("Ingresa un enlace válido de Google Maps");
+    expect(input(/Enlace de Google Maps/)).toHaveAttribute("aria-invalid", "true");
+  });
+
+  it("acepta enlaces oficiales de Google Maps", () => {
+    [
+      "https://maps.app.goo.gl/TechBolivia",
+      "https://www.google.com/maps/place/Plaza+14+de+Septiembre/@-17.3935,-66.157,17z/data=!3m1",
+    ].forEach((mapsLink) => {
+      renderStep({ conditions: { ...EMPTY_CONDITIONS, mapsLink } });
+      expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+      cleanup();
+    });
+  });
+
+  it("en pasantía deshabilita el salario y lo vuelve opcional", () => {
+    renderStep({ conditions: { ...EMPTY_CONDITIONS, contractType: "Pasantía" } });
+    const salary = input(/Salario/);
+
+    expect(salary).toBeDisabled();
+    expect(salary).toHaveAttribute("placeholder", "A convenir");
+    expect(screen.getByText("Salario").querySelector("span")).toBeNull();
+  });
+
+  it("al elegir pasantía limpia el salario ingresado", () => {
+    const { updateField } = renderStep({ conditions: { ...EMPTY_CONDITIONS, salary: "Bs 3.000" } });
+
+    fireEvent.click(screen.getByRole("button", { name: "elegir-pasantia" }));
+
+    expect(updateField).toHaveBeenCalledWith("contractType", "Pasantía");
+    expect(updateField).toHaveBeenCalledWith("salary", "");
   });
 
   it("permite elegir una modalidad y la marca como seleccionada", () => {
