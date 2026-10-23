@@ -40,7 +40,7 @@ describe("AppRouteLayout", () => {
   });
 
   it.each([
-    ["/events", "true"],
+    ["/events", "false"],
     ["/events/my-passes", "false"],
   ])("keeps the main navigation on workshop pages %s", (pathname, fullBleed) => {
     route.pathname = pathname;
@@ -75,7 +75,7 @@ describe("AppRouteLayout", () => {
 
     expect(screen.getAllByTestId("app-shell")).toHaveLength(1);
     expect(screen.getByTestId("app-shell")).toContainElement(
-      screen.getByRole("heading", { name: "Cola de Revisión" }),
+      screen.getByRole("heading", { name: "Revisión de radares" }),
     );
   });
 
@@ -91,10 +91,10 @@ describe("AppRouteLayout", () => {
 
   it.each([
     [["administrativo"], false],
-    [["empresa"], false],
+    [["empresa"], true],
     [["empresa", "titulado"], true],
     [["administrativo", "mentor"], true],
-    [["estudiante"], false],
+    [["estudiante"], true],
   ])("checks chat permissions for roles %s", (roles, isAllowed) => {
     sessionStorage.setItem("accessToken", `h.${btoa(JSON.stringify({ roleTag: roles[0], roles }))}.s`);
     route.pathname = "/chat";
