@@ -4,15 +4,13 @@ import { JOB_OFFER_CREATED_SELECT, JOB_OFFER_SELECT } from '../constants/job-off
 import { JobOffersRepository } from '../repositories/job-offers.repository.js';
 import { JobOfferContractType, JobOfferModality, JobOfferStatus } from '../types/job-offer.enum.js';
 
-const NOT_DELETED = { title: { not: JobOfferStatus.DELETED } };
-
 function createPrisma() {
   return {
     company: { findUnique: vi.fn() },
     jobOfferModality: { findUnique: vi.fn() },
     jobOfferContractType: { findUnique: vi.fn() },
     jobOfferStatus: { findUnique: vi.fn() },
-    jobOffer: { create: vi.fn(), findMany: vi.fn() },
+    jobOffer: { create: vi.fn(), findMany: vi.fn(), findFirst: vi.fn(), update: vi.fn() },
   };
 }
 
@@ -112,7 +110,7 @@ describe('JobOffersRepository', () => {
     await repository.findByCompany('company-1', { sortBy: 'createdAt', order: 'desc' });
 
     expect(prisma.jobOffer.findMany).toHaveBeenCalledWith({
-      where: { companyId: 'company-1', status: NOT_DELETED },
+      where: { companyId: 'company-1'  },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
       select: JOB_OFFER_SELECT,
     });
@@ -134,7 +132,6 @@ describe('JobOffersRepository', () => {
     expect(prisma.jobOffer.findMany).toHaveBeenCalledWith({
       where: {
         companyId: 'company-1',
-        status: NOT_DELETED,
         modality: { title: 'Remoto' },
         contractType: { title: 'Medio tiempo' },
         createdAt: {
@@ -147,4 +144,68 @@ describe('JobOffersRepository', () => {
       select: JOB_OFFER_SELECT,
     });
   });
+
+  it('consulta una vacante por empresa e id con sus relaciones detalladas', async () => {
+    const record = { id: 'offer-1' };
+    prisma.jobOffer.findFirst.mockResolvedValue(record);
+
+    await expect(repository.findByCompanyAndId('company-1', 'offer-1')).resolves.toBe(record);
+
+    expect(prisma.jobOffer.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'offer-1',
+        companyId: 'company-1',
+        status: { title: { not: JobOfferStatus.DELETED } },
+      },
+      select: JOB_OFFER_SELECT,
+    });
+  });
+
+  it('actualiza la vacante reemplazando sus habilidades en una sola operación', async () => {
+    prisma.jobOffer.update.mockResolvedValue({ id: 'offer-1' });
+
+    await repository.update('offer-1', {
+      modalityId: 'modality-1',
+      contractTypeId: 'contract-1',
+      title: 'DevOps',
+      description: 'Descripción',
+      category: 'Tecnología',
+      positionsAvailable: 2,
+      salaryRange: 'Bs 6.500',
+      languages: 'Español',
+      locationUrl: 'https://maps.google.com/?q=x',
+      skillIds: ['skill-1', 'skill-2'],
+    });
+
+    expect(prisma.jobOffer.update).toHaveBeenCalledWith({
+      where: { id: 'offer-1' },
+      data: expect.objectContaining({
+        title: 'DevOps',
+        modalityId: 'modality-1',
+        skills: {
+          deleteMany: {},
+          create: [{ skillId: 'skill-1' }, { skillId: 'skill-2' }],
+        },
+      }),
+      select: JOB_OFFER_SELECT,
+    });
+  });
+
+  it('permite consultar los detalles de una vacante eliminada en el historial', async () => {
+    const record = { id: 'offer-1' };
+    prisma.jobOffer.findFirst.mockResolvedValue(record);
+
+    await expect(
+      repository.findHistoryByCompanyAndId('company-1', 'offer-1'),
+    ).resolves.toBe(record);
+
+    expect(prisma.jobOffer.findFirst).toHaveBeenCalledWith({
+      where: {
+        id: 'offer-1',
+        companyId: 'company-1',
+      },
+      select: JOB_OFFER_SELECT,
+    });
+  });
+
 });

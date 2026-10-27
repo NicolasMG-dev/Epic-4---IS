@@ -156,6 +156,8 @@ model User {
   chatMessages         Message[]
   chatParticipants     ConversationParticipant[]
   presence             UserPresence?
+  auditEvents         AuditEvent[]         @relation("AuditEventActor")
+  revertedValidations DocumentValidation[] @relation("DocumentValidationRevertedBy")
 
   @@index([cityId])
   @@map("users")
@@ -227,16 +229,31 @@ model WorkExperience {
   @@map("work_experiences")
 }
 
+model RadarArea {
+  id          String   @id @db.VarChar(50)
+  name        String   @unique @db.VarChar(80)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  skills Skill[]
+
+  @@map("radar_areas")
+}
+
 model Skill {
   id        String   @id @default(uuid()) @db.Uuid
   name      String   @unique
   isCustom  Boolean  @default(false) @map("is_custom")
+  areaId    String?  @map("area_id") @db.VarChar(50)
   createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  area           RadarArea?      @relation(fields: [areaId], references: [id], onDelete: SetNull)
   userSkills     UserSkill[]
   jobOfferSkills JobOfferSkill[]
 
+  @@index([areaId])
   @@map("skills")
 }
 
@@ -256,11 +273,15 @@ model JobOfferSkill {
 }
 
 model UserSkill {
-  id        String   @id @default(uuid()) @db.Uuid
-  userId    String   @map("user_id") @db.Uuid
-  skillId   String   @map("skill_id") @db.Uuid
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                 String   @id @default(uuid()) @db.Uuid
+  userId             String   @map("user_id") @db.Uuid
+  skillId            String   @map("skill_id") @db.Uuid
+  source             String   @default("manual") @db.VarChar(20)
+  verificationStatus String   @default("pending") @map("verification_status") @db.VarChar(20)
+  isHighRelevance    Boolean  @default(false) @map("is_high_relevance")
+  evidenceRefs       Json?    @default("[]") @map("evidence_refs")
+  createdAt          DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt          DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
   skill Skill @relation(fields: [skillId], references: [id], onDelete: Restrict)
@@ -614,6 +635,7 @@ model JobOfferStatus {
 
   @@map("job_offer_statuses")
 }
+
 model AdminExportHistory {
   id         String   @id @default(uuid()) @db.Uuid
   userId     String   @map("user_id") @db.Uuid
@@ -662,6 +684,7 @@ model File {
   updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   accessRequest AccessRequest?
+  auditEvents   AuditEvent[]   @relation("AuditEventEvidence")
 
   @@map("files")
 }
@@ -711,6 +734,8 @@ model AccessRequest {
   career       Career                     @relation(fields: [careerId], references: [id], onDelete: Restrict)
 
   activationOtps ActivationOtp[]
+  auditEvents        AuditEvent[]
+  documentValidation DocumentValidation?
 
   @@index([statusId])
   @@index([careerId])
@@ -818,3 +843,69 @@ model UserPresence {
   @@map("user_presences")
 }
 
+// HU 1.5.2 · Catálogo de acciones de auditoría (aprobada, rechazada, código enviado, etc.)
+model AuditAction {
+  id          String   @id @default(uuid()) @db.Uuid
+  title       String   @unique @db.VarChar(100)
+  description String?
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  auditEvents AuditEvent[]
+
+  @@map("audit_actions")
+}
+
+// HU 1.5.2 · Registro de auditoría: un evento por cada hecho sobre una solicitud (solo se agrega y se lee)
+model AuditEvent {
+  id              String   @id @default(uuid()) @db.Uuid
+  number          Int      @unique @default(autoincrement())
+  accessRequestId String   @map("access_request_id") @db.Uuid
+  requestCode     String   @map("request_code") @db.VarChar(20)
+  applicantName   String   @map("applicant_name") @db.VarChar(201)
+  applicantCareer String   @map("applicant_career") @db.VarChar(100)
+  actionId        String   @map("action_id") @db.Uuid
+  actorId         String?  @map("actor_id") @db.Uuid
+  actorName       String   @map("actor_name") @db.VarChar(201)
+  actorRole       String   @map("actor_role") @db.VarChar(50)
+  detail          String?  @db.VarChar(500)
+  evidenceFileId  String?  @map("evidence_file_id") @db.Uuid
+  occurredAt      DateTime @default(now()) @map("occurred_at") @db.Timestamptz(6)
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  accessRequest AccessRequest @relation(fields: [accessRequestId], references: [id], onDelete: Restrict)
+  action        AuditAction   @relation(fields: [actionId], references: [id], onDelete: Restrict)
+  actor         User?         @relation("AuditEventActor", fields: [actorId], references: [id], onDelete: SetNull)
+  evidenceFile  File?         @relation("AuditEventEvidence", fields: [evidenceFileId], references: [id], onDelete: Restrict)
+
+  @@index([occurredAt(sort: Desc), number(sort: Desc)])
+  @@index([accessRequestId, occurredAt])
+  @@index([actionId])
+  @@index([actorId])
+  @@index([evidenceFileId])
+  @@map("audit_events")
+}
+
+// HU 1.5.3 · Resultado de la validación automática del documento de cada solicitud (una por solicitud)
+model DocumentValidation {
+  id              String    @id @default(uuid()) @db.Uuid
+  accessRequestId String    @unique @map("access_request_id") @db.Uuid
+  result          String    @db.VarChar(30)
+  matchScore      Int?      @map("match_score") @db.SmallInt
+  reason          String?   @db.VarChar(200)
+  fieldResults    Json?     @map("field_results")
+  queuedAt        DateTime  @default(now()) @map("queued_at") @db.Timestamptz(6)
+  readAt          DateTime? @map("read_at") @db.Timestamptz(6)
+  revertedAt      DateTime? @map("reverted_at") @db.Timestamptz(6)
+  revertedById    String?   @map("reverted_by_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime  @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  accessRequest AccessRequest @relation(fields: [accessRequestId], references: [id], onDelete: Cascade)
+  revertedBy    User?         @relation("DocumentValidationRevertedBy", fields: [revertedById], references: [id], onDelete: SetNull)
+
+  @@index([result])
+  @@index([revertedById])
+  @@map("document_validations")
+}

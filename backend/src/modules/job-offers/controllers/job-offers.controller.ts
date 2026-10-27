@@ -1,25 +1,33 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   HttpCode,
   HttpStatus,
   Param,
   ParseUUIDPipe,
   Post,
+  Put,
   Query,
   StandardSchemaValidationPipe,
+  UseGuards,
   UsePipes,
 } from '@nestjs/common';
 import {
   ApiBody,
   ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
 import { RequestValidationException } from '../../../common/exceptions/request-validation.exception.js';
+import { Roles } from '../../../common/decorators/roles.decorator.js';
+import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard.js';
+import { RolesGuard } from '../../../common/guards/roles.guard.js';
 import { buildRequestValidationException } from '../../../common/utils/build-request-validation-exception.js';
 import { toApiBody } from '../../../common/utils/to-api-body.js';
 import {
@@ -43,14 +51,20 @@ import type {
 } from '../responses/job-offer.response.js';
 import { JobOffersService } from '../services/job-offers.service.js';
 import { JobOfferContractType, JobOfferModality } from '../types/job-offer.enum.js';
+
 const companyIdPipe = new ParseUUIDPipe({
   exceptionFactory: () =>
     new RequestValidationException([
       { field: 'companyId', message: JOB_OFFER_VALIDATION_MESSAGES.INVALID_COMPANY_ID },
     ]),
 });
+const jobOfferIdPipe = new ParseUUIDPipe({
+  exceptionFactory: () =>
+    new RequestValidationException([
+      { field: 'jobOfferId', message: JOB_OFFER_VALIDATION_MESSAGES.INVALID_JOB_OFFER_ID },
+    ]),
+});
 
-// TODO: proteger con JwtAuthGuard y el rol empresa cuando el login devuelva el companyId (Epic 1)
 @ApiTags('job-offers')
 @UsePipes(
   new StandardSchemaValidationPipe({
@@ -87,7 +101,9 @@ export class JobOffersController {
     return this.jobOffersService.create(companyId, request);
   }
 
-    @Get('companies/:companyId/job-offers')
+  @Get('companies/:companyId/job-offers')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('empresa')
   @ApiOperation({ summary: 'Lista las vacantes de una empresa, con filtros opcionales' })
   @ApiQuery({ name: 'modality', required: false, enum: JobOfferModality })
   @ApiQuery({ name: 'contractType', required: false, enum: JobOfferContractType })
@@ -130,5 +146,48 @@ export class JobOffersController {
     @Query({ schema: listCompanyJobOffersSchema }) filters: ListCompanyJobOffersRequest,
   ): Promise<JobOfferResponse[]> {
     return this.jobOffersService.listByCompany(companyId, filters);
+  }
+
+  @Get('companies/:companyId/job-offers/:jobOfferId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('empresa')
+  @ApiOperation({ summary: 'Obtiene los detalles de una vacante de la empresa' })
+  @ApiOkResponse({ description: 'Detalles de la vacante solicitada' })
+  @ApiNotFoundResponse({ description: 'La vacante no existe o no pertenece a la empresa' })
+  getByCompanyAndId(
+    @Param('companyId', companyIdPipe) companyId: string,
+    @Param('jobOfferId', jobOfferIdPipe) jobOfferId: string,
+  ): Promise<JobOfferResponse> {
+    return this.jobOffersService.getByCompanyAndId(companyId, jobOfferId);
+  }
+
+  @Put('companies/:companyId/job-offers/:jobOfferId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('empresa')
+  @ApiOperation({ summary: 'Edita una vacante de la empresa' })
+  @ApiBody(toApiBody(createJobOfferSchema))
+  @ApiOkResponse({ description: 'Vacante actualizada' })
+  @ApiNotFoundResponse({ description: 'La vacante no existe o no pertenece a la empresa' })
+  update(
+    @Param('companyId', companyIdPipe) companyId: string,
+    @Param('jobOfferId', jobOfferIdPipe) jobOfferId: string,
+    @Body({ schema: createJobOfferSchema }) request: CreateJobOfferRequest,
+  ): Promise<JobOfferResponse> {
+    return this.jobOffersService.update(companyId, jobOfferId, request);
+  }
+
+ @Delete('companies/:companyId/job-offers/:jobOfferId')
+  @UseGuards(JwtAuthGuard, RolesGuard)
+  @Roles('empresa')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({ summary: 'Elimina una vacante de la empresa' })
+  @ApiNoContentResponse({ description: 'Vacante eliminada exitosamente' })
+  @ApiNotFoundResponse({ description: 'La vacante no existe o no pertenece a la empresa' })
+  remove(
+    @Param('companyId', companyIdPipe) companyId: string,
+    @Param('jobOfferId', jobOfferIdPipe) jobOfferId: string,
+  ): Promise<void> {
+    console.log('>>> [BACKEND] Petición DELETE recibida:', { companyId, jobOfferId });
+    return this.jobOffersService.softDelete(companyId, jobOfferId);
   }
 }
