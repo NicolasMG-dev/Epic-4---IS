@@ -125,10 +125,11 @@ describe("InformationStep", () => {
     const { updateField } = renderStep();
     const input = screen.getByLabelText(/Enlace de Google Maps/);
 
+    const longLink = `https://maps.app.goo.gl/${"a".repeat(3000)}`;
+
     expect(input).toHaveAttribute("maxLength", "2048");
-    fireEvent.change(input, { target: { value: `https://maps.app.goo.gl/${"a".repeat(3000)}` } });
-    expect(updateField).toHaveBeenLastCalledWith("mapsLink", expect.any(String));
-    expect(updateField.mock.lastCall?.[1]).toHaveLength(2048);
+    fireEvent.change(input, { target: { value: longLink } });
+    expect(updateField).toHaveBeenLastCalledWith("mapsLink", longLink.slice(0, 2048));
   });
 
   it("limita la categoría a 100 caracteres", () => {
