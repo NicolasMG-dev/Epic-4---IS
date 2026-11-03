@@ -83,6 +83,20 @@ describe("PreviewStep", () => {
     expect(screen.queryByText(/FINAL/)).not.toBeInTheDocument();
   });
 
+  it("recorta una categoría y unos idiomas largos y permite expandirlos", () => {
+    const category = `${"a".repeat(600)}FINCAT`;
+    const languages = `Españo${"o".repeat(94)}`;
+    renderStep({ conditions: { ...VALID_CONDITIONS, category, languages } });
+
+    expect(screen.queryByText(/FINCAT/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ver más de la categoría" }));
+    expect(screen.getByText(/FINCAT/)).toBeInTheDocument();
+
+    expect(screen.queryByText(languages)).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Ver más de los idiomas" }));
+    expect(screen.getByText(languages)).toBeInTheDocument();
+  });
+
   it("no muestra Ver más si la descripción es corta", () => {
     renderStep();
 

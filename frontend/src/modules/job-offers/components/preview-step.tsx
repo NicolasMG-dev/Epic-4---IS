@@ -1,24 +1,18 @@
 "use client";
 
-import { useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
   DESCRIPTION_PREVIEW_CHARS,
   INTERNSHIP_CONTRACT_TYPE,
   SALARY_TO_BE_AGREED,
+  SHORT_FIELD_PREVIEW_CHARS,
 } from "../constants/job-offers.constants";
+import { ExpandableText } from "./expandable-text";
 import { JobOfferHighlights } from "./job-offer-highlights";
 import { StepActions } from "./step-actions";
 import type { PreviewStepProps } from "../types/preview-step-props.types";
 import { formatVacancyCount } from "../utils/format-vacancy-count";
-
-function formatDescription(description: string, isExpanded: boolean): string {
-  const text = description.trim();
-  if (isExpanded || text.length <= DESCRIPTION_PREVIEW_CHARS) return text;
-  return `${text.slice(0, DESCRIPTION_PREVIEW_CHARS).trimEnd()}...`;
-}
 
 export function PreviewStep({
   conditions,
@@ -29,8 +23,6 @@ export function PreviewStep({
   onPrevious,
   onConfirm,
 }: PreviewStepProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
-  const canExpand = conditions.description.trim().length > DESCRIPTION_PREVIEW_CHARS;
   const mapsLink = conditions.mapsLink.trim();
 
   const confirmLabel = isEditMode ? "Confirmar edición" : "Confirmar publicación";
@@ -60,8 +52,13 @@ export function PreviewStep({
         </div>
 
         <div className="mb-6">
-          <h2 className="text-2xl font-extrabold text-ink">{conditions.title}</h2>
-          <p className="mt-1 text-sm font-bold text-ink-soft">{conditions.category}</p>
+          <h2 className="text-2xl font-extrabold break-words text-ink">{conditions.title}</h2>
+          <ExpandableText
+            text={conditions.category}
+            maxChars={SHORT_FIELD_PREVIEW_CHARS}
+            subject="de la categoría"
+            className="mt-1 text-sm font-bold text-ink-soft"
+          />
         </div>
 
         <div className="mb-6">
@@ -73,29 +70,22 @@ export function PreviewStep({
           />
         </div>
 
-        <p className="mb-6 text-sm leading-relaxed break-words whitespace-pre-line text-text-secondary">
-          {formatDescription(conditions.description, isExpanded)}
-          {canExpand && (
-            <>
-              {" "}
-              <Button
-                type="button"
-                variant="link"
-                aria-expanded={isExpanded}
-                onClick={() => setIsExpanded((current) => !current)}
-                className="h-auto p-0 font-semibold text-accent"
-              >
-                {isExpanded ? "Ver menos" : "Ver más"}
-              </Button>
-            </>
-          )}
-        </p>
+        <ExpandableText
+          text={conditions.description}
+          maxChars={DESCRIPTION_PREVIEW_CHARS}
+          className="mb-6 text-sm leading-relaxed whitespace-pre-line text-text-secondary"
+        />
 
         <Separator className="mb-5" />
 
         <div className="mb-5">
           <h4 className="mb-1 text-sm font-semibold text-ink">Idiomas</h4>
-          <p className="text-sm text-text-secondary">{conditions.languages}</p>
+          <ExpandableText
+            text={conditions.languages}
+            maxChars={SHORT_FIELD_PREVIEW_CHARS}
+            subject="de los idiomas"
+            className="text-sm text-text-secondary"
+          />
         </div>
 
         <Separator className="mb-5" />

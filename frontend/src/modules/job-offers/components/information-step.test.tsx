@@ -121,6 +121,25 @@ describe("InformationStep", () => {
     expect(updateField).toHaveBeenLastCalledWith("vacancyCount", "4234");
   });
 
+  it("limita el enlace de Google Maps a 2048 caracteres aunque se pegue uno más largo", () => {
+    const { updateField } = renderStep();
+    const input = screen.getByLabelText(/Enlace de Google Maps/);
+
+    expect(input).toHaveAttribute("maxLength", "2048");
+    fireEvent.change(input, { target: { value: `https://maps.app.goo.gl/${"a".repeat(3000)}` } });
+    expect(updateField).toHaveBeenLastCalledWith("mapsLink", expect.any(String));
+    expect(updateField.mock.lastCall?.[1]).toHaveLength(2048);
+  });
+
+  it("limita la categoría a 100 caracteres", () => {
+    const { updateField } = renderStep();
+    const input = screen.getByLabelText(/Categoría/);
+
+    expect(input).toHaveAttribute("maxLength", "100");
+    fireEvent.change(input, { target: { value: "a".repeat(600) } });
+    expect(updateField).toHaveBeenLastCalledWith("category", "a".repeat(100));
+  });
+
   it("marca en tiempo real un número de vacantes mayor a 500", () => {
     renderStep({ conditions: { ...EMPTY_CONDITIONS, vacancyCount: "501" } });
     const count = input(/Número de vacantes/);
