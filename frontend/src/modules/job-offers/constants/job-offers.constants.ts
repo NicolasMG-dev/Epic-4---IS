@@ -16,7 +16,6 @@ export const MAX_VACANCY_DIGITS = String(MAX_VACANCIES).length + 1;
 export const MAX_SALARY_DIGITS = 9;
 export const MAX_SKILLS = 10;
 export const DESCRIPTION_PREVIEW_CHARS = 125;
-export const SHORT_FIELD_PREVIEW_CHARS = 60;
 
 export const TITLE_ALLOWED_REGEX = /^[a-zA-Z0-9\sÁÉÍÓÚÜÑáéíóúüñ]+$/;
 export const TITLE_DISALLOWED_CHARS_REGEX = /[^a-zA-Z0-9\sÁÉÍÓÚÜÑáéíóúüñ]/g;

@@ -6,7 +6,6 @@ import {
   DESCRIPTION_PREVIEW_CHARS,
   INTERNSHIP_CONTRACT_TYPE,
   SALARY_TO_BE_AGREED,
-  SHORT_FIELD_PREVIEW_CHARS,
 } from "../constants/job-offers.constants";
 import { ExpandableText } from "./expandable-text";
 import { JobOfferHighlights } from "./job-offer-highlights";
@@ -53,12 +52,7 @@ export function PreviewStep({
 
         <div className="mb-6">
           <h2 className="text-2xl font-extrabold break-words text-ink">{conditions.title}</h2>
-          <ExpandableText
-            text={conditions.category}
-            maxChars={SHORT_FIELD_PREVIEW_CHARS}
-            subject="de la categoría"
-            className="mt-1 text-sm font-bold text-ink-soft"
-          />
+          <p className="mt-1 text-sm font-bold break-words text-ink-soft">{conditions.category}</p>
         </div>
 
         <div className="mb-6">
@@ -80,12 +74,7 @@ export function PreviewStep({
 
         <div className="mb-5">
           <h4 className="mb-1 text-sm font-semibold text-ink">Idiomas</h4>
-          <ExpandableText
-            text={conditions.languages}
-            maxChars={SHORT_FIELD_PREVIEW_CHARS}
-            subject="de los idiomas"
-            className="text-sm text-text-secondary"
-          />
+          <p className="text-sm break-words text-text-secondary">{conditions.languages}</p>
         </div>
 
         <Separator className="mb-5" />
