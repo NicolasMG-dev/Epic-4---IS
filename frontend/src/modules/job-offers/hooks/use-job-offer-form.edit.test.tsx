@@ -1,3 +1,5 @@
+import "@/shared/testing/indexed-db.mock";
+import "@/modules/job-offers/testing/current-company.mock";
 import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { clearAccessToken, saveAccessToken } from "@/shared/services/storage/access-token-storage";
@@ -23,15 +25,16 @@ const OFFER: JobOfferDetailsResponse = {
   languages: "Español",
   locationUrl: "https://maps.app.goo.gl/TechBolivia",
   expiresAt: null,
+  publishedAt: "2026-10-12T00:00:00.000Z",
   createdAt: "2026-10-12T00:00:00.000Z",
   company: { id: COMPANY_ID, name: "TechBolivia" },
   skills: [DOCKER],
 };
 
 describe("useJobOfferForm en modo edición", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.stubEnv("NEXT_PUBLIC_DEMO_COMPANY_ID", COMPANY_ID);
-    saveAccessToken(buildSessionToken("empresa"));
+    await saveAccessToken(buildSessionToken("empresa"));
   });
 
   afterEach(() => {

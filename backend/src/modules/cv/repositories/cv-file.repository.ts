@@ -10,7 +10,23 @@ const cvIdSelect = { id: true } as const;
 export class CvFileRepository implements CvFileStorage {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(userId: string, content: Buffer, fileName?: string): Promise<string> {
+  async hasByUserId(userId: string): Promise<boolean> {
+    const cv = await this.prisma.userCvFile.findFirst({
+      where: {
+        userId,
+        cvPdfData: { not: null },
+        cvUploadedAt: { not: null },
+      },
+      select: cvIdSelect,
+    });
+    return cv !== null;
+  }
+
+  async create(
+    userId: string,
+    content: Buffer,
+    fileName?: string,
+  ): Promise<string> {
     const cv = await this.prisma.userCvFile.create({
       data: {
         userId,
@@ -39,5 +55,19 @@ export class CvFileRepository implements CvFileStorage {
     });
 
     return count > 0;
+  }
+  currentCv(userId: string) {
+    return this.prisma.userCvFile.findFirst({
+      where: { userId },
+      orderBy: { cvUploadedAt: 'desc' },
+      select: { id: true, cvPdfData: true },
+    });
+  }
+
+  cvById(cvId: string) {
+    return this.prisma.userCvFile.findUnique({
+      where: { id: cvId },
+      select: { id: true, userId: true, cvPdfData: true, cvFileName: true },
+    });
   }
 }

@@ -4,8 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithQuery as render } from "@/shared/testing/render-with-query";
 import { JOB_MATCHING_QUERY_KEYS } from "../constants/job-matching.constants";
 import { jobMatchingService } from "../services/job-matching.service";
-import type { JobMatch } from "../types/job-matching.types";
-import type { CategorizedJobRequirement } from "../types/requirement-category.types";
+import type { JobMatch } from "../types/job-match.types";
+import type { CategorizedJobRequirement } from "../types/categorized-job-requirement.types";
 import { JobMatchDetailView } from "./job-match-detail-view";
 
 vi.mock("next/link", () => ({
@@ -21,7 +21,7 @@ vi.mock("../services/job-matching.service", () => ({
 }));
 
 const JOB_ID = "11111111-1111-4111-8111-111111111111";
-const NO_PENDING = "No tienes habilidades ni requisitos visibles pendientes para esta oportunidad";
+const NO_PENDING = "Para esta oportunidad no tienes habilidades pendientes";
 
 function getGroup(title: string) {
   const heading = screen.getByRole("heading", { name: title, level: 4 });

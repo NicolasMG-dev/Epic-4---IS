@@ -2,13 +2,19 @@ import {
   Body,
   Controller,
   Get,
+  Post,
   Put,
   StandardSchemaValidationPipe,
   UseGuards,
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiBody, ApiOkResponse, ApiTags } from '@nestjs/swagger';
+import {
+  ApiBearerAuth,
+  ApiBody,
+  ApiOkResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import { CurrentUserId } from '../../../common/decorators/current-user-id.decorator.js';
 import { JwtAuthGuard } from '../../../common/guards/jwt-auth.guard.js';
 import { ResponseInterceptor } from '../../../common/interceptors/response.interceptor.js';
@@ -48,5 +54,15 @@ export class UserSkillController {
     @Body({ schema: updateUserSkillsSchema }) request: UpdateUserSkillsRequest,
   ): Promise<SkillResponse[]> {
     return this.userSkillService.updateUserSkills(userId, request);
+  }
+
+  @Post()
+  @ApiBody(toApiBody(updateUserSkillsSchema))
+  @ApiOkResponse({ description: 'Added skills of the authenticated user' })
+  addSkills(
+    @CurrentUserId() userId: string,
+    @Body({ schema: updateUserSkillsSchema }) request: UpdateUserSkillsRequest,
+  ): Promise<SkillResponse[]> {
+    return this.userSkillService.addSkills(userId, request);
   }
 }

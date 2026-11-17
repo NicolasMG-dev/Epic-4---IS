@@ -13,6 +13,7 @@ import {
   MentorUnavailableException,
   OwnBlockException,
 } from '../exceptions/index.js';
+import { AppointmentDocumentMapper } from '../mappers/appointment-document.mapper.js';
 import { AppointmentMapper } from '../mappers/appointment.mapper.js';
 import type { CreateAppointmentDto } from '../requests/create-appointment.request.js';
 import { AppointmentsService } from '../services/appointments.service.js';
@@ -75,8 +76,11 @@ describe('AppointmentsService', () => {
       ],
     });
     blockedDatesService.runOnUnblockedDay.mockImplementation(
-      async (_mentorId: string, _startAt: Date, work: (tx: unknown) => Promise<unknown>) =>
-        work(TX),
+      async (
+        _mentorId: string,
+        _startAt: Date,
+        work: (tx: unknown) => Promise<unknown>,
+      ) => work(TX),
     );
     appointmentsRepository.findStatusIdByTitle.mockResolvedValue(STATUS_ID);
     appointmentsRepository.createAppointment.mockResolvedValue(
@@ -84,10 +88,11 @@ describe('AppointmentsService', () => {
     );
     service = new AppointmentsService(
       appointmentsRepository as never,
-      new AppointmentMapper(),
+      new AppointmentMapper(new AppointmentDocumentMapper()),
       availabilityService as never,
       blockedDatesService as never,
       mentorsService as never,
+      {} as never,
     );
   });
 
@@ -104,7 +109,9 @@ describe('AppointmentsService', () => {
       createdBlock.startAt,
       expect.any(Function),
     );
-    expect(availabilityService.findBlockWithAppointments).toHaveBeenLastCalledWith(BLOCK_ID, TX);
+    expect(
+      availabilityService.findBlockWithAppointments,
+    ).toHaveBeenLastCalledWith(BLOCK_ID, TX);
     expect(appointmentsRepository.findStatusIdByTitle).toHaveBeenCalledWith(
       AppointmentStatusTitle.CONFIRMED,
       TX,
@@ -125,7 +132,7 @@ describe('AppointmentsService', () => {
     expect(result).toMatchObject({
       id: APPOINTMENT_ID,
       status: AppointmentStatusTitle.CONFIRMED,
-      counterpart: { id: MENTOR_ID, fullName: 'Ana Pérez' },
+      counterpart: { id: MENTOR_ID, fullName: 'Ana Pérez', role: 'mentor' },
       orientationType: { id: TOPIC_ID, name: 'Orientación profesional' },
     });
   });
@@ -133,7 +140,9 @@ describe('AppointmentsService', () => {
   it('crea el historial de la cita con el estado CONFIRMED y quién la creó', async () => {
     await service.create(user, payload);
 
-    expect(appointmentsRepository.createAppointmentHistory).toHaveBeenCalledWith(
+    expect(
+      appointmentsRepository.createAppointmentHistory,
+    ).toHaveBeenCalledWith(
       {
         appointmentId: APPOINTMENT_ID,
         previousStatusId: null,
@@ -162,7 +171,9 @@ describe('AppointmentsService', () => {
     );
     expect(blockedDatesService.runOnUnblockedDay).not.toHaveBeenCalled();
     expect(appointmentsRepository.createAppointment).not.toHaveBeenCalled();
-    expect(appointmentsRepository.createAppointmentHistory).not.toHaveBeenCalled();
+    expect(
+      appointmentsRepository.createAppointmentHistory,
+    ).not.toHaveBeenCalled();
   });
 
   it('normaliza la confirmación heredada a CONFIRMED en la respuesta', async () => {
@@ -203,16 +214,16 @@ describe('AppointmentsService', () => {
       block({ mentorId: STUDENT_ID }),
     );
 
-    await expect(service.create(user, payload)).rejects.toThrow(OwnBlockException);
+    await expect(service.create(user, payload)).rejects.toThrow(
+      OwnBlockException,
+    );
     expect(mentorsService.findOne).not.toHaveBeenCalled();
   });
 
   it('responde 409 cuando el bloque ya tiene una cita activa', async () => {
     availabilityService.findBlockWithAppointments.mockResolvedValue(
       block({
-        appointments: [
-          { status: { title: AppointmentStatusTitle.CONFIRMED } },
-        ],
+        appointments: [{ status: { title: AppointmentStatusTitle.CONFIRMED } }],
       }),
     );
 
@@ -250,14 +261,20 @@ describe('AppointmentsService', () => {
       new DayBlockedException(),
     );
 
-    await expect(service.create(user, payload)).rejects.toThrow(DayBlockedException);
+    await expect(service.create(user, payload)).rejects.toThrow(
+      DayBlockedException,
+    );
     expect(appointmentsRepository.createAppointment).not.toHaveBeenCalled();
   });
 
   it('responde 409 cuando el candado del día expira', async () => {
-    blockedDatesService.runOnUnblockedDay.mockRejectedValue(new DayBusyException());
+    blockedDatesService.runOnUnblockedDay.mockRejectedValue(
+      new DayBusyException(),
+    );
 
-    await expect(service.create(user, payload)).rejects.toThrow(DayBusyException);
+    await expect(service.create(user, payload)).rejects.toThrow(
+      DayBusyException,
+    );
     expect(appointmentsRepository.createAppointment).not.toHaveBeenCalled();
   });
 

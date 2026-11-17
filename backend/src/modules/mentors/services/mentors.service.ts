@@ -1,9 +1,12 @@
 import { withMentorIntake } from './mentor-intake.service.js';
 import { Injectable } from '@nestjs/common';
+import { UserSkillService } from '../../skills/services/user-skill.service.js';
 import { MentorParticipationException } from '../exceptions/mentor-participation.exception.js';
 import { MentorsRepository } from '../repositories/mentors.repository.js';
 import {
   AlreadyMentorException,
+  MentorCapacityException,
+  MentorEligibilityException,
   InvalidOrientationTypesException,
   InvalidTechnicalAreasException,
   MentorNotFoundException,
@@ -38,6 +41,7 @@ export class MentorsService {
   constructor(
     private readonly mentorsRepository: MentorsRepository,
     private readonly mentorMapper: MentorMapper,
+    private readonly userSkillService: UserSkillService,
     private readonly mentorAffinityService?: MentorAffinityService,
   ) {}
 
@@ -133,7 +137,7 @@ export class MentorsService {
           now,
           page,
           DIRECTORY_PAGE_SIZE,
-          query.sort === 'affinity' ? 'name_asc' : query.sort,
+          query.sort === 'affinity' ? 'default' : query.sort,
         )
       : [];
 
@@ -144,7 +148,7 @@ export class MentorsService {
       totalItems,
       totalPages,
       effectiveSort:
-        query.sort === 'affinity' ? ('name_asc' as const) : query.sort,
+        query.sort === 'affinity' ? ('default' as const) : query.sort,
       ...(affinityStatus ? { affinityStatus } : {}),
     };
   }
@@ -160,7 +164,8 @@ export class MentorsService {
       throw new MentorNotFoundException();
     }
 
-    return this.mentorMapper.toProfileResponse(mentor);
+    const skills = await this.userSkillService.getProfessionalSkills(userId);
+    return this.mentorMapper.toProfileResponse(mentor, skills);
   }
 
   async findMyTechnicalAreas(userId: string) {
@@ -249,6 +254,20 @@ export class MentorsService {
       throw new InvalidTechnicalAreasException();
     if (!data.orientationTypeIds.length)
       throw new InvalidOrientationTypesException();
+    if (!tx) {
+      const result = await this.mentorsRepository.withLock(
+        async (transaction) => {
+          try {
+            return await this.activate(userId, data, undefined, transaction);
+          } catch (error) {
+            if (error instanceof MentorParticipationException) return { error };
+            throw error;
+          }
+        },
+      );
+      if ('error' in result) throw result.error;
+      return result;
+    }
     const mentorRole = await this.mentorsRepository.findMentorRole(tx);
     if (!mentorRole) {
       throw new MentorRoleNotFoundException();
@@ -280,6 +299,31 @@ export class MentorsService {
       throw new InvalidOrientationTypesException();
     }
 
+    await this.mentorsRepository.reconcileOffers(tx);
+    const eligibility = await this.mentorsRepository.readEligibility(
+      userId,
+      tx,
+    );
+    if (!eligibility.eligible) throw new MentorEligibilityException();
+    if (eligibility.alreadyMentor) throw new AlreadyMentorException();
+    const intake = await this.mentorsRepository.readIntake(userId, tx);
+    if (intake.hasOffer || intake.hasPendingRequest) {
+      throw new MentorParticipationException(
+        intake.hasOffer
+          ? 'Ya tienes un cupo reservado. Confirma tu oferta desde Mi participación.'
+          : 'Ya tienes una solicitud vigente. Revisa su estado en Mi participación.',
+        409,
+        {
+          code: intake.hasOffer
+            ? 'MENTOR_OFFER_CONFIRMATION_REQUIRED'
+            : 'REQUEST_ALREADY_EXISTS',
+          participationPath: '/mentors/participation',
+        },
+      );
+    }
+    const capacity = await this.mentorsRepository.readCapacity(tx);
+    if (capacity.available < 1) throw new MentorCapacityException();
+
     const activation = await this.mentorsRepository.activate(
       userId,
       mentorRole.id,
@@ -287,21 +331,6 @@ export class MentorsService {
       data.orientationTypeIds,
       tx,
     );
-    if ('result' in activation) {
-      const hasOffer = activation.result === 'OFFER_EXISTS';
-      throw new MentorParticipationException(
-        hasOffer
-          ? 'Ya tienes un cupo reservado. Confirma tu oferta desde Mi participación.'
-          : 'Ya tienes una solicitud vigente. Revisa su estado en Mi participación.',
-        409,
-        {
-          code: hasOffer
-            ? 'MENTOR_OFFER_CONFIRMATION_REQUIRED'
-            : 'REQUEST_ALREADY_EXISTS',
-          participationPath: '/mentors/participation',
-        },
-      );
-    }
     return activation;
   }
 

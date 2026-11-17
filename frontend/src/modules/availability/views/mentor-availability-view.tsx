@@ -8,13 +8,11 @@ import { BOLIVIA_TIME_LABEL } from "@/shared/constants/date-time.constants";
 import { addWeeks, getWeekRange } from "@/shared/utils/date-time";
 import { cn } from "cn";
 import { BLOCKED_DATE_TEXT } from "../constants/blocked-date.constants";
-import {
-  MY_AVAILABILITY_EYEBROW,
-  MY_AVAILABILITY_TEXT,
-} from "../constants/my-availability.constants";
+import { MY_AVAILABILITY_TEXT } from "../constants/my-availability.constants";
 import { AvailabilityLoading } from "../components/availability-loading";
 import { BlockForm } from "../components/block-form";
 import { BlockedDatePanel } from "../components/blocked-date-panel";
+import { BlockedDatesList } from "../components/blocked-dates-list";
 import { EditBlockPanel } from "../components/edit-block-panel";
 import { ReceiveRequestsSwitch } from "../components/receive-requests-switch";
 import { WeekGrid } from "../components/week-grid/week-grid";
@@ -100,7 +98,7 @@ export function MentorAvailabilityView({
       <header>
         <PageHeading
           title={MY_AVAILABILITY_TEXT.title}
-          description={`${MY_AVAILABILITY_EYEBROW}. ${BLOCKED_DATE_TEXT.viewHint}`}
+          description={`Mentorías. ${BLOCKED_DATE_TEXT.viewHint}`}
           actions={<ReceiveRequestsSwitch />}
         />
       </header>
@@ -174,7 +172,7 @@ export function MentorAvailabilityView({
         </div>
 
         <div
-          className="min-w-0 min-[1200px]:sticky min-[1200px]:top-[calc(var(--spacing-app-header)+1rem)] min-[1200px]:max-h-[calc(100dvh-var(--spacing-app-header)-2rem)] min-[1200px]:overflow-y-auto"
+          className="min-w-0 space-y-4 min-[1200px]:sticky min-[1200px]:top-[calc(var(--spacing-app-header)+1rem)] min-[1200px]:max-h-[calc(100dvh-var(--spacing-app-header)-2rem)] min-[1200px]:overflow-y-auto"
         >
           {showBlockedPanel && (
             <BlockedDatePanel
@@ -208,6 +206,7 @@ export function MentorAvailabilityView({
               onCancel={handleCancelCreate}
             />
           </div>
+          <BlockedDatesList />
         </div>
       </div>
     </div>

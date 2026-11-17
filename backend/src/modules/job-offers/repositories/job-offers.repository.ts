@@ -107,7 +107,7 @@ export class JobOffersRepository {
         status: { title: JobOfferStatus.PUBLISHED },
         OR: [{ expiresAt: null }, { expiresAt: { gt: now } }],
       },
-      orderBy: { createdAt: 'desc' },
+      orderBy: { publishedAt: 'desc' },
       select: JOB_OFFER_SELECT,
     });
   }
@@ -167,16 +167,35 @@ export class JobOffersRepository {
     });
   }
 
-  // La fecha de publicación que se muestra es createdAt, por eso al reabrir se renueva.
-  reopen(jobOfferId: string, statusId: string, publishedAt: Date): Promise<JobOfferRecord> {
-    return this.updateExisting(jobOfferId, { statusId, createdAt: publishedAt });
+    reopen(
+    jobOfferId: string,
+    statusId: string,
+    publishedAt: Date,
+    clearExpiresAt = false,
+  ): Promise<JobOfferRecord> {
+    return this.updateExisting(jobOfferId, {
+      statusId,
+      publishedAt,
+      ...(clearExpiresAt && { expiresAt: null }),
+    });
+  }
+
+  async closeExpired(
+    publishedStatusId: string,
+    closedStatusId: string,
+    now: Date,
+  ): Promise<number> {
+    const { count } = await this.prisma.jobOffer.updateMany({
+      where: { statusId: publishedStatusId, expiresAt: { lte: now } },
+      data: { statusId: closedStatusId },
+    });
+    return count;
   }
 
   updateStatus(jobOfferId: string, statusId: string): Promise<JobOfferRecord> {
     return this.updateExisting(jobOfferId, { statusId });
   }
 
-  // Si la vacante se borró entre la verificación y la escritura, Prisma lanza P2025: se responde 404.
   private updateExisting(
     jobOfferId: string,
     data: Prisma.JobOfferUncheckedUpdateInput,
@@ -189,5 +208,39 @@ export class JobOffersRepository {
       }),
       () => new JobOfferNotFoundException(),
     );
+  }
+
+  activeRecruitmentVacancies() {
+    return this.prisma.jobOffer.findMany({
+      where: {
+        status: { title: 'Publicada' },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      include: { skills: { include: { skill: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  recruiterVacancies(companyIds: string[]) {
+    return this.prisma.jobOffer.findMany({
+      where: {
+        companyId: { in: companyIds },
+        status: { title: 'Publicada' },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      include: { skills: { include: { skill: true } } },
+      orderBy: { createdAt: 'desc' },
+    });
+  }
+
+  publishedRecruitmentJob(jobId: string) {
+    return this.prisma.jobOffer.findFirst({
+      where: {
+        id: jobId,
+        status: { title: 'Publicada' },
+        OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+      },
+      include: { skills: { include: { skill: true } } },
+    });
   }
 }

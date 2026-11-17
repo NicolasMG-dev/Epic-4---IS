@@ -1,3 +1,4 @@
+import { CompanyOwnershipGuard } from '../../../common/guards/company-ownership.guard.js';
 import {
   Body,
   Controller,
@@ -16,6 +17,9 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import {
+  ApiBearerAuth,
+  ApiForbiddenResponse,
+  ApiUnauthorizedResponse,
   ApiBody,
   ApiConflictResponse,
   ApiCreatedResponse,
@@ -54,20 +58,30 @@ import type { JobOfferCreatedResponse } from '../responses/job-offer-created.res
 import type {
   JobOfferResponse,
   JobOfferSkillResponse,
+  PublishedJobOfferResponse,
 } from '../responses/job-offer.response.js';
 import { JobOffersService } from '../services/job-offers.service.js';
-import { JobOfferContractType, JobOfferModality } from '../types/job-offer.enum.js';
+import {
+  JobOfferContractType,
+  JobOfferModality,
+} from '../types/job-offer.enum.js';
 
 const companyIdPipe = new ParseUUIDPipe({
   exceptionFactory: () =>
     new RequestValidationException([
-      { field: 'companyId', message: JOB_OFFER_VALIDATION_MESSAGES.INVALID_COMPANY_ID },
+      {
+        field: 'companyId',
+        message: JOB_OFFER_VALIDATION_MESSAGES.INVALID_COMPANY_ID,
+      },
     ]),
 });
 const jobOfferIdPipe = new ParseUUIDPipe({
   exceptionFactory: () =>
     new RequestValidationException([
-      { field: 'jobOfferId', message: JOB_OFFER_VALIDATION_MESSAGES.INVALID_JOB_OFFER_ID },
+      {
+        field: 'jobOfferId',
+        message: JOB_OFFER_VALIDATION_MESSAGES.INVALID_JOB_OFFER_ID,
+      },
     ]),
 });
 
@@ -82,21 +96,32 @@ export class JobOffersController {
   constructor(private readonly jobOffersService: JobOffersService) {}
 
   @Get('job-offers')
-  @ApiOperation({ summary: 'Lista las vacantes publicadas y vigentes para los egresados' })
-  @ApiOkResponse({ description: 'Vacantes publicadas, de la más reciente a la más antigua' })
-  listPublished(): Promise<JobOfferResponse[]> {
+  @ApiOperation({
+    summary: 'Lista las vacantes publicadas y vigentes para los egresados',
+  })
+  @ApiOkResponse({
+    description: 'Vacantes publicadas, de la más reciente a la más antigua',
+  })
+  listPublished(): Promise<PublishedJobOfferResponse[]> {
     return this.jobOffersService.listPublished();
   }
 
   @Get('job-offers/skills')
-  @ApiOperation({ summary: 'Lista el catálogo cerrado de tecnologías para una vacante' })
+  @ApiOperation({
+    summary: 'Lista el catálogo cerrado de tecnologías para una vacante',
+  })
   @ApiOkResponse({ description: 'Tecnologías verificadas del catálogo' })
   listSkillCatalog(): Promise<JobOfferSkillResponse[]> {
     return this.jobOffersService.listSkillCatalog();
   }
 
   @Post('companies/:companyId/job-offers')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, CompanyOwnershipGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Se requiere una sesión válida' })
+  @ApiForbiddenResponse({
+    description: 'La cuenta no pertenece a esta empresa',
+  })
   @Roles('empresa')
   @HttpCode(HttpStatus.CREATED)
   @ApiOperation({ summary: 'Publica una nueva vacante de la empresa' })
@@ -110,11 +135,22 @@ export class JobOffersController {
   }
 
   @Get('companies/:companyId/job-offers')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, CompanyOwnershipGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Se requiere una sesión válida' })
+  @ApiForbiddenResponse({
+    description: 'La cuenta no pertenece a esta empresa',
+  })
   @Roles('empresa')
-  @ApiOperation({ summary: 'Lista las vacantes de una empresa, con filtros opcionales' })
+  @ApiOperation({
+    summary: 'Lista las vacantes de una empresa, con filtros opcionales',
+  })
   @ApiQuery({ name: 'modality', required: false, enum: JobOfferModality })
-  @ApiQuery({ name: 'contractType', required: false, enum: JobOfferContractType })
+  @ApiQuery({
+    name: 'contractType',
+    required: false,
+    enum: JobOfferContractType,
+  })
   @ApiQuery({
     name: 'dateFrom',
     required: false,
@@ -126,7 +162,8 @@ export class JobOffersController {
     name: 'dateTo',
     required: false,
     type: String,
-    description: 'Publicadas hasta este día inclusive, en hora de Bolivia (AAAA-MM-DD)',
+    description:
+      'Publicadas hasta este día inclusive, en hora de Bolivia (AAAA-MM-DD)',
     example: '2026-10-31',
   })
   @ApiQuery({
@@ -140,7 +177,8 @@ export class JobOffersController {
     name: 'sortBy',
     required: false,
     enum: JOB_OFFER_SORT_FIELDS,
-    description: 'Por defecto createdAt. applicants ordena por cantidad de postulantes y desempata por fecha',
+    description:
+      'Por defecto publishedAt (fecha de publicación). applicants ordena por cantidad de postulantes y desempata por fecha',
   })
   @ApiQuery({
     name: 'order',
@@ -148,20 +186,32 @@ export class JobOffersController {
     enum: JOB_OFFER_SORT_ORDERS,
     description: 'Por defecto desc (más recientes primero)',
   })
-  @ApiOkResponse({ description: 'Vacantes de la empresa que cumplen los filtros' })
+  @ApiOkResponse({
+    description: 'Vacantes de la empresa que cumplen los filtros',
+  })
   listByCompany(
     @Param('companyId', companyIdPipe) companyId: string,
-    @Query({ schema: listCompanyJobOffersSchema }) filters: ListCompanyJobOffersRequest,
+    @Query({ schema: listCompanyJobOffersSchema })
+    filters: ListCompanyJobOffersRequest,
   ): Promise<JobOfferResponse[]> {
     return this.jobOffersService.listByCompany(companyId, filters);
   }
 
   @Get('companies/:companyId/job-offers/:jobOfferId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, CompanyOwnershipGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Se requiere una sesión válida' })
+  @ApiForbiddenResponse({
+    description: 'La cuenta no pertenece a esta empresa',
+  })
   @Roles('empresa')
-  @ApiOperation({ summary: 'Obtiene los detalles de una vacante de la empresa' })
+  @ApiOperation({
+    summary: 'Obtiene los detalles de una vacante de la empresa',
+  })
   @ApiOkResponse({ description: 'Detalles de la vacante solicitada' })
-  @ApiNotFoundResponse({ description: 'La vacante no existe o no pertenece a la empresa' })
+  @ApiNotFoundResponse({
+    description: 'La vacante no existe o no pertenece a la empresa',
+  })
   getByCompanyAndId(
     @Param('companyId', companyIdPipe) companyId: string,
     @Param('jobOfferId', jobOfferIdPipe) jobOfferId: string,
@@ -170,12 +220,19 @@ export class JobOffersController {
   }
 
   @Put('companies/:companyId/job-offers/:jobOfferId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, CompanyOwnershipGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Se requiere una sesión válida' })
+  @ApiForbiddenResponse({
+    description: 'La cuenta no pertenece a esta empresa',
+  })
   @Roles('empresa')
   @ApiOperation({ summary: 'Edita una vacante de la empresa' })
   @ApiBody(toApiBody(updateJobOfferSchema))
   @ApiOkResponse({ description: 'Vacante actualizada' })
-  @ApiNotFoundResponse({ description: 'La vacante no existe o no pertenece a la empresa' })
+  @ApiNotFoundResponse({
+    description: 'La vacante no existe o no pertenece a la empresa',
+  })
   update(
     @Param('companyId', companyIdPipe) companyId: string,
     @Param('jobOfferId', jobOfferIdPipe) jobOfferId: string,
@@ -185,11 +242,18 @@ export class JobOffersController {
   }
 
   @Patch('companies/:companyId/job-offers/:jobOfferId/reopen')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, CompanyOwnershipGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Se requiere una sesión válida' })
+  @ApiForbiddenResponse({
+    description: 'La cuenta no pertenece a esta empresa',
+  })
   @Roles('empresa')
   @ApiOperation({ summary: 'Reabre una vacante cerrada de la empresa' })
   @ApiOkResponse({ description: 'Vacante reabierta con estado Publicada' })
-  @ApiNotFoundResponse({ description: 'La vacante no existe o no pertenece a la empresa' })
+  @ApiNotFoundResponse({
+    description: 'La vacante no existe o no pertenece a la empresa',
+  })
   @ApiConflictResponse({ description: 'La vacante no está cerrada' })
   reopen(
     @Param('companyId', companyIdPipe) companyId: string,
@@ -199,12 +263,19 @@ export class JobOffersController {
   }
 
   @Delete('companies/:companyId/job-offers/:jobOfferId')
-  @UseGuards(JwtAuthGuard, RolesGuard)
+  @UseGuards(JwtAuthGuard, RolesGuard, CompanyOwnershipGuard)
+  @ApiBearerAuth()
+  @ApiUnauthorizedResponse({ description: 'Se requiere una sesión válida' })
+  @ApiForbiddenResponse({
+    description: 'La cuenta no pertenece a esta empresa',
+  })
   @Roles('empresa')
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiOperation({ summary: 'Elimina una vacante de la empresa' })
   @ApiNoContentResponse({ description: 'Vacante eliminada exitosamente' })
-  @ApiNotFoundResponse({ description: 'La vacante no existe o no pertenece a la empresa' })
+  @ApiNotFoundResponse({
+    description: 'La vacante no existe o no pertenece a la empresa',
+  })
   remove(
     @Param('companyId', companyIdPipe) companyId: string,
     @Param('jobOfferId', jobOfferIdPipe) jobOfferId: string,

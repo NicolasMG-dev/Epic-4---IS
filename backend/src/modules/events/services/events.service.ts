@@ -1,3 +1,4 @@
+import type { RegistrationScheduleEvent } from '../types/registration-schedule-event.types.js';
 import { Injectable } from '@nestjs/common';
 import type { Prisma } from '../../../prisma/client.js';
 import { EventNotFoundException } from '../exceptions/event-not-found.exception.js';
@@ -5,13 +6,20 @@ import { EventsRepository } from '../repositories/events.repository.js';
 import { mapEventsToListResponse } from '../mappers/events.mapper.js';
 import { mapEventDetailToResponse } from '../mappers/event-detail.mapper.js';
 import type { GetEventsPayload } from '../types/get-events-payload.types.js';
-import type { EventDetailResponse, EventsListResponse, FindEventsPayload } from '../types/events.types.js';
+import type {
+  EventDetailResponse,
+  EventsListResponse,
+  FindEventsPayload,
+} from '../types/events.types.js';
 
 @Injectable()
 export class EventsService {
   constructor(private readonly repository: EventsRepository) {}
 
-  async findAll(payload: GetEventsPayload, userId?: string): Promise<EventsListResponse> {
+  async findAll(
+    payload: GetEventsPayload,
+    userId?: string,
+  ): Promise<EventsListResponse> {
     await this.expireOverdueProposals(new Date());
     const { page, limit, categoryId, statusId, search } = payload;
     const offset = (page - 1) * limit;
@@ -52,6 +60,17 @@ export class EventsService {
 
   findById(id: string, userId?: string) {
     return this.repository.findById(id, userId);
+  }
+
+  async hasScheduleConflict(
+    tx: Prisma.TransactionClient,
+    event: RegistrationScheduleEvent,
+    registeredEventIds: string[],
+  ): Promise<boolean> {
+    if (!registeredEventIds.length) return false;
+    return Boolean(
+      await this.repository.findScheduleConflict(tx, event, registeredEventIds),
+    );
   }
 
   async findForRegistration(id: string, tx?: Prisma.TransactionClient) {

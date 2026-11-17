@@ -177,6 +177,11 @@ export type BlockedDate = Prisma.BlockedDateModel
  */
 export type Appointment = Prisma.AppointmentModel
 /**
+ * Model AppointmentDocument
+ * 
+ */
+export type AppointmentDocument = Prisma.AppointmentDocumentModel
+/**
  * Model TimeProposal
  * 
  */
@@ -342,6 +347,11 @@ export type JobApplicationStatus = Prisma.JobApplicationStatusModel
  */
 export type JobApplication = Prisma.JobApplicationModel
 /**
+ * Model RadarApplicationConsent
+ * 
+ */
+export type RadarApplicationConsent = Prisma.RadarApplicationConsentModel
+/**
  * Model SurveyStatus
  * 
  */
@@ -411,3 +421,73 @@ export type MentorParticipationSanction = Prisma.MentorParticipationSanctionMode
  * 
  */
 export type MentorIntakeOperation = Prisma.MentorIntakeOperationModel
+/**
+ * Model RadarCvEvidence
+ * 
+ */
+export type RadarCvEvidence = Prisma.RadarCvEvidenceModel
+/**
+ * Model RadarScoreSnapshot
+ * 
+ */
+export type RadarScoreSnapshot = Prisma.RadarScoreSnapshotModel
+/**
+ * Model RadarAuditEvent
+ * 
+ */
+export type RadarAuditEvent = Prisma.RadarAuditEventModel
+/**
+ * Model RadarCvExtractionStatus
+ * 
+ */
+export type RadarCvExtractionStatus = Prisma.RadarCvExtractionStatusModel
+/**
+ * Model RadarCvReviewStatus
+ * 
+ */
+export type RadarCvReviewStatus = Prisma.RadarCvReviewStatusModel
+/**
+ * Model MentorParticipationStatus
+ * 
+ */
+export type MentorParticipationStatus = Prisma.MentorParticipationStatusModel
+/**
+ * Model MentorOfferStatus
+ * 
+ */
+export type MentorOfferStatus = Prisma.MentorOfferStatusModel
+/**
+ * Model PortfolioProvider
+ * 
+ */
+export type PortfolioProvider = Prisma.PortfolioProviderModel
+/**
+ * Model UserSocialAccount
+ * 
+ */
+export type UserSocialAccount = Prisma.UserSocialAccountModel
+/**
+ * Model UserPortfolioProject
+ * 
+ */
+export type UserPortfolioProject = Prisma.UserPortfolioProjectModel
+/**
+ * Model NotificationType
+ * 
+ */
+export type NotificationType = Prisma.NotificationTypeModel
+/**
+ * Model Notification
+ * 
+ */
+export type Notification = Prisma.NotificationModel
+/**
+ * Model PushSubscription
+ * 
+ */
+export type PushSubscription = Prisma.PushSubscriptionModel
+/**
+ * Model NotificationPreference
+ * 
+ */
+export type NotificationPreference = Prisma.NotificationPreferenceModel

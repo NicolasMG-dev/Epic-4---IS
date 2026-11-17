@@ -19,7 +19,7 @@ export { PublicWorkshopsView } from "./views/public-workshops-view";
 export { PublicWorkshopDetailView } from "./views/public-workshop-detail-view";
 
 export { MyPassesView } from "./views/my-passes-view";
-
+export { MyPassesRouteView } from "./views/my-passes-route-view";
 export { readRecord, readArray, readString } from "./utils/response-validation";
 export { REQUEST_TIMEOUT_MS } from "./constants/events.constants";
 export {
@@ -28,8 +28,8 @@ export {
   useRegistrationActions,
   REGISTRATION_ERROR_MESSAGES,
   getRegistrationErrorMessage,
-} from '@/modules/registrations';
+} from '@/modules/event-registrations';
 export type {
   RegistrationResponse,
   RegistrationErrorCode,
-} from '@/modules/registrations';
+} from '@/modules/event-registrations';

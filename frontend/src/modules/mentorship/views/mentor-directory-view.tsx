@@ -1,11 +1,12 @@
-
 "use client";
+import type { MentorDirectoryViewProps } from "../types/mentor-directory-view-props.types";
 
-import { useCallback, useEffect, useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   NativeSelect,
   NativeSelectOption,
@@ -21,23 +22,13 @@ import { MentorQuerySkeleton } from "../components/mentor/mentor-query-skeleton"
 import { useCurrentUserId } from "../hooks/use-current-user-id";
 import { useMentorDirectory } from "../hooks/use-mentor-directory";
 import { useMentorshipCatalogs } from "../hooks/use-mentorship-catalogs";
-import type {
-  DirectoryPage,
-  MentorSort,
-} from "../types/mentor-directory.types";
+import type { MentorSort } from "../types/mentor-directory.types";
 import {
+  MENTOR_DIRECTORY_DEFAULTS,
   normalizeMentorDirectoryParams,
   parseMentorDirectoryState,
   updateMentorDirectoryParams,
 } from "../utils/mentor-directory-navigation";
-
-type MentorDirectoryViewProps = {
-  directoryState?: Pick<
-    DirectoryPage,
-    "effectiveSort" | "affinityStatus"
-  > &
-    Partial<Pick<DirectoryPage, "totalPages">>;
-};
 
 export function MentorDirectoryView({
   directoryState,
@@ -87,13 +78,18 @@ export function MentorDirectoryView({
   const effectiveSort: MentorSort =
     sortBy !== "affinity"
       ? sortBy
-      : directory?.effectiveSort ??
+      : (directory?.effectiveSort ??
         directoryState?.effectiveSort ??
-        "name_asc";
+        "default");
 
   const affinityStatus =
     directory?.affinityStatus ?? directoryState?.affinityStatus;
-  const hasFilters = Boolean(search.trim() || area || orientation || isAvailableOnly);
+  const hasFilters = Boolean(
+    search.trim() ||
+      area ||
+      orientation ||
+      isAvailableOnly !== MENTOR_DIRECTORY_DEFAULTS.available
+  );
 
   useEffect(() => {
     if (!directory && directoryState?.totalPages === undefined) {
@@ -106,10 +102,9 @@ export function MentorDirectoryView({
     ).toString();
 
     if (normalized !== queryString) {
-      router.replace(
-        normalized ? `${pathname}?${normalized}` : pathname,
-        { scroll: false },
-      );
+      router.replace(normalized ? `${pathname}?${normalized}` : pathname, {
+        scroll: false,
+      });
     }
   }, [
     directory,
@@ -124,50 +119,44 @@ export function MentorDirectoryView({
     sortBy !== "affinity" || effectiveSort === "affinity"
       ? null
       : affinityStatus === "no_skills"
-        ? "Agrega habilidades profesionales a tu perfil para encontrar mentores con mayor afinidad. Se muestran los mentores por nombre."
+        ? "Agrega habilidades profesionales a tu perfil para encontrar mentores con mayor afinidad. Se muestran los mentores por defecto."
         : affinityStatus === "unmapped_skills"
-          ? "Tus habilidades profesionales aún no tienen correspondencia con las áreas técnicas. Se muestran los mentores por nombre."
+          ? "Tus habilidades profesionales aún no tienen correspondencia con las áreas técnicas. Se muestran los mentores por defecto."
           : affinityStatus === "ready"
-            ? "El orden por afinidad no se aplicó. Se muestran los mentores por nombre."
-            : "La afinidad todavía no está disponible. Se muestran los mentores por nombre.";
+            ? "El orden por afinidad no se aplicó. Se muestran los mentores por defecto."
+            : "La afinidad todavía no está disponible. Se muestran los mentores por defecto.";
 
-  const navigateWithUpdates = useCallback(
-    (updates: {
-      search?: string;
-      area?: string;
-      orientation?: string;
-      available?: boolean;
-      sort?: MentorSort;
-      page?: number;
-    }) => {
-      const next = updateMentorDirectoryParams(
-        new URLSearchParams(queryString),
-        updates,
-      );
+  function navigateWithUpdates(updates: {
+    search?: string;
+    area?: string;
+    orientation?: string;
+    available?: boolean;
+    sort?: MentorSort;
+    page?: number;
+  }) {
+    const next = updateMentorDirectoryParams(
+      new URLSearchParams(queryString),
+      updates,
+    );
 
-      const query = next.toString();
+    const query = next.toString();
 
-      router.replace(
-        query ? `${pathname}?${query}` : pathname,
-        { scroll: false },
-      );
-    },
-    [pathname, queryString, router],
-  );
+    router.replace(query ? `${pathname}?${query}` : pathname, {
+      scroll: false,
+    });
+  }
 
   function handleClearFilters() {
     navigateWithUpdates({
       search: "",
       area: "",
       orientation: "",
-      available: false,
+      available: true,
+      sort: "default",
     });
   }
 
-  const returnTo = useMemo(
-    () => (queryString ? `${pathname}?${queryString}` : pathname),
-    [pathname, queryString],
-  );
+  const returnTo = queryString ? `${pathname}?${queryString}` : pathname;
 
   return (
     <main className="min-h-full bg-background">
@@ -185,7 +174,6 @@ export function MentorDirectoryView({
           className="flex flex-wrap items-center gap-4 rounded-lg border border-border bg-surface p-4"
         >
           <MentorSearchBar
-            key={search}
             value={search}
             onSearchChange={(nextSearch) =>
               navigateWithUpdates({
@@ -207,7 +195,9 @@ export function MentorDirectoryView({
             }
           />
 
-          <Label className="flex items-center gap-2">
+          <Label
+            className={cn("flex items-center gap-2", isAvailableOnly && "text-primary")}
+          >
             <Checkbox
               checked={isAvailableOnly}
               onCheckedChange={(checked) =>
@@ -237,6 +227,10 @@ export function MentorDirectoryView({
                 })
               }
             >
+              <NativeSelectOption value="default">
+                Por defecto
+              </NativeSelectOption>
+
               <NativeSelectOption value="name_asc">
                 Nombre (A–Z)
               </NativeSelectOption>
@@ -310,6 +304,7 @@ export function MentorDirectoryView({
               returnTo={returnTo}
               showAffinityBadge={effectiveSort === "affinity"}
               selectedArea={area}
+              highlightAvailability={isAvailableOnly}
             />
 
             <MentorDirectoryPagination

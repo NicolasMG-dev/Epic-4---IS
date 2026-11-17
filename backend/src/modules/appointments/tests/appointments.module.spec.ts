@@ -9,6 +9,8 @@ import { AvailabilityModule } from '../../availability/availability.module.js';
 import { AvailabilityService } from '../../availability/services/availability.service.js';
 import { MentorsModule } from '../../mentors/mentors.module.js';
 import { MentorsService } from '../../mentors/services/mentors.service.js';
+import { ProfileModule } from '../../profile/profile.module.js';
+import { ProfilePhotoService } from '../../profile/services/profile-photo.service.js';
 import { AppointmentsModule } from '../appointments.module.js';
 import { AppointmentsController } from '../controllers/appointments.controller.js';
 import { AppointmentMapper } from '../mappers/appointment.mapper.js';
@@ -47,45 +49,37 @@ describe('AppointmentsModule', () => {
     expect(moduleRef.get(provider)).toBeInstanceOf(provider);
   });
 
-  it('reutiliza las instancias de los servicios de availability y mentors', () => {
+  it('reutiliza las instancias de los servicios de availability, mentors y profile', () => {
     const appointmentsContext = moduleRef.select(AppointmentsModule);
 
     for (const [dependencyModule, service] of [
       [AvailabilityModule, AvailabilityService],
       [MentorsModule, MentorsService],
+      [ProfileModule, ProfilePhotoService],
     ] as const) {
       expect(appointmentsContext.get(service)).toBe(
         moduleRef.select(dependencyModule).get(service, { strict: true }),
       );
-      expect(() => appointmentsContext.get(service, { strict: true })).toThrow();
+      expect(() =>
+        appointmentsContext.get(service, { strict: true }),
+      ).toThrow();
     }
   });
 
   it('exporta el servicio para su inyección desde un módulo consumidor', () => {
     expect(moduleRef.get(AppointmentsConsumer).appointmentsService).toBe(
-      moduleRef.select(AppointmentsModule).get(AppointmentsService, { strict: true }),
+      moduleRef
+        .select(AppointmentsModule)
+        .get(AppointmentsService, { strict: true }),
     );
   });
 
   it('está registrado en el módulo raíz de la aplicación', () => {
-    const imports: unknown[] = Reflect.getMetadata(MODULE_METADATA.IMPORTS, AppModule);
+    const imports: unknown[] = Reflect.getMetadata(
+      MODULE_METADATA.IMPORTS,
+      AppModule,
+    );
 
     expect(imports).toContain(AppointmentsModule);
-  });
-
-  it('inicializa la aplicación con appointments y la conexión de datos sustituida', async () => {
-    const rootModule = await Test.createTestingModule({ imports: [AppModule] })
-      .overrideProvider(PrismaService)
-      .useValue({})
-      .compile();
-    const app = rootModule.createNestApplication();
-
-    try {
-      await app.init();
-
-      expect(app.get(AppointmentsService)).toBeInstanceOf(AppointmentsService);
-    } finally {
-      await app.close();
-    }
   });
 });

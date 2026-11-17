@@ -1,5 +1,7 @@
 import { seedTechnicalAreasCatalog } from '../../modules/technical-areas/seeds/technical-areas-catalog.seed.js';
 import { seedOrientationTypesCatalog } from '../../modules/orientation-types/seeds/orientation-types-catalog.seed.js';
+import { seedMentorParticipationStatusesCatalog } from '../../modules/mentors/seeds/mentor-participation-statuses-catalog.seed.js';
+import { seedMentorOfferStatusesCatalog } from '../../modules/mentors/seeds/mentor-offer-statuses-catalog.seed.js';
 import { seedAppointmentStatusesCatalog } from '../../modules/availability/seeds/appointment-statuses-catalog.seed.js';
 import { seedProposalStatusesCatalog } from '../../modules/availability/seeds/proposal-statuses-catalog.seed.js';
 import { seedEventCategoriesCatalog } from '../../modules/event-categories/seeds/event-categories-catalog.seed.js';
@@ -16,6 +18,7 @@ import { seedCareersCatalog } from '../../modules/access-requests/seeds/careers-
 import { seedMessageStatusesCatalog } from '../../modules/chat/seeds/message-statuses-catalog.seed.js';
 import { seedConnectionRequestStatusesCatalog } from '../../modules/chat/seeds/connection-request-statuses-catalog.seed.js';
 import { seedAttachmentTypesCatalog } from '../../modules/chat/seeds/attachment-types-catalog.seed.js';
+import { seedPortfolioProvidersCatalog } from '../../modules/portfolio/seeds/portfolio-providers-catalog.seed.js';
 import { seedSurveyStatusesCatalog } from '../../modules/surveys/seeds/survey-statuses-catalog.seed.js';
 import { seedSurveyQuestionTypesCatalog } from '../../modules/surveys/seeds/survey-question-types-catalog.seed.js';
 import { seedSurveyTargetAudiencesCatalog } from '../../modules/surveys/seeds/survey-target-audiences-catalog.seed.js';
@@ -26,6 +29,8 @@ export async function seedCatalogStages(
 ): Promise<void> {
   await seedTechnicalAreasCatalog(tx);
   await seedOrientationTypesCatalog(tx);
+  await seedMentorParticipationStatusesCatalog(tx);
+  await seedMentorOfferStatusesCatalog(tx);
   await seedAppointmentStatusesCatalog(tx);
   await seedProposalStatusesCatalog(tx);
   await seedEventCategoriesCatalog(tx);
@@ -45,4 +50,5 @@ export async function seedCatalogStages(
   await seedSurveyTargetAudiencesCatalog(tx);
   await seedConnectionRequestStatusesCatalog(tx);
   await seedAttachmentTypesCatalog(tx);
+  await seedPortfolioProvidersCatalog(tx);
 }

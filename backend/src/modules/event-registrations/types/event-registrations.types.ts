@@ -1,5 +1,6 @@
 export interface MyRegistrationResponse {
   id: string;
+  eventId: string;
   eventName: string;
   date: Date;
   startTime: Date;
@@ -16,7 +17,6 @@ export interface CreateEventRegistrationPayload {
   statusId: string;
 }
 
-export interface PersistEventRegistrationPayload
-  extends CreateEventRegistrationPayload {
+export interface PersistEventRegistrationPayload extends CreateEventRegistrationPayload {
   qrToken: string;
 }
