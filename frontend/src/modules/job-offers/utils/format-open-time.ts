@@ -13,12 +13,12 @@ function plural(amount: number, singular: string, pluralWord: string): string {
   return `${amount} ${amount === 1 ? singular : pluralWord}`;
 }
 
-// Devuelve cuánto tiempo lleva abierta la vacante (días, meses o años) usando días de Bolivia.
+// Devuelve cuánto tiempo lleva publicada la vacante (días, meses o años) usando días de Bolivia.
 export function formatOpenTime(publishedAt: string, now: Date = new Date()): string {
   const days = Math.max(0, toDayNumber(now) - toDayNumber(publishedAt));
 
-  if (days === 0) return "desde hoy";
-  if (days < DAYS_PER_MONTH) return `hace ${plural(days, "día", "días")}`;
-  if (days < DAYS_PER_YEAR) return `hace ${plural(Math.floor(days / DAYS_PER_MONTH), "mes", "meses")}`;
-  return `hace ${plural(Math.floor(days / DAYS_PER_YEAR), "año", "años")}`;
+  if (days === 0) return "Hoy";
+  if (days < DAYS_PER_MONTH) return `Hace ${plural(days, "día", "días")}`;
+  if (days < DAYS_PER_YEAR) return `Hace ${plural(Math.floor(days / DAYS_PER_MONTH), "mes", "meses")}`;
+  return `Hace ${plural(Math.floor(days / DAYS_PER_YEAR), "año", "años")}`;
 }
