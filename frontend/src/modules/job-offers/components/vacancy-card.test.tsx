@@ -31,6 +31,18 @@ describe("VacancyCard", () => {
     expect(screen.getByText("Tipo de contrato: Tiempo completo")).toBeInTheDocument();
   });
 
+  it("muestra cuánto tiempo lleva abierta una vacante activa", () => {
+    renderCard({ offer: buildJobOffer({ publishedAt: new Date().toISOString() }) });
+
+    expect(screen.getByText(/Abierta desde hoy/)).toBeInTheDocument();
+  });
+
+  it("no muestra el tiempo abierta en una vacante cerrada", () => {
+    renderCard({ offer: buildJobOffer({ status: "Cerrada" }) });
+
+    expect(screen.queryByText(/Abierta/)).not.toBeInTheDocument();
+  });
+
   it("no muestra la etiqueta de estado por defecto", () => {
     renderCard();
 

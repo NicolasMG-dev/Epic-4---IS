@@ -6,6 +6,7 @@ import { buttonVariants } from "@/components/ui/button-variants";
 import { cn } from "@/lib/utils";
 import { PUBLISHED_STATUS, STATUS_BADGE_CLASSES, STATUS_LABELS } from "../constants/job-offers.constants";
 import type { VacancyCardProps } from "../types/vacancy-card-props.types";
+import { formatOpenTime } from "../utils/format-open-time";
 import { formatPublicationDate } from "../utils/format-publication-date";
 
 export function VacancyCard({ offer, onDetails, showStatus = false, onReopen, onDelete }: VacancyCardProps) {
@@ -42,6 +43,7 @@ export function VacancyCard({ offer, onDetails, showStatus = false, onReopen, on
         <p className="mt-1 text-sm text-text-secondary">
           Publicado: {formatPublicationDate(offer.publishedAt)} · Modalidad:{" "}
           {offer.modality} · Postulantes: {offer.applicantsCount} candidatos
+          {isPublished ? <> · Abierta {formatOpenTime(offer.publishedAt)}</> : null}
         </p>
         <p className="mt-1 text-sm text-text-secondary">Tipo de contrato: {offer.contractType}</p>
         {isPublished ? (
