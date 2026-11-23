@@ -40,10 +40,19 @@ describe("VacancyList en el portal de empresa", () => {
     mockOffers([]);
     renderWithQuery(<VacancyList />);
 
-    expect(await screen.findByText("Aún no tienes vacantes publicadas")).toBeInTheDocument();
+    expect(await screen.findByText("No se tienen vacantes creadas")).toBeInTheDocument();
     const links = screen.getAllByRole("link", { name: "Crear nueva vacante" });
     expect(links).toHaveLength(1);
     expect(links[0]).toHaveAttribute("href", "/recruiters/job-offers/new");
+  });
+
+  it("muestra el encabezado Lista de Vacantes con su subtítulo", async () => {
+    mockOffers();
+    renderWithQuery(<VacancyList />);
+
+    expect(await screen.findByRole("heading", { name: "Lista de Vacantes" })).toBeInTheDocument();
+    expect(screen.getByText("Consulta y administra las vacantes que publicó tu empresa.")).toBeInTheDocument();
+    expect(screen.getByPlaceholderText("Buscar por título de vacante...")).toBeInTheDocument();
   });
 
   it("muestra esqueletos de carga mientras consulta las vacantes", () => {
