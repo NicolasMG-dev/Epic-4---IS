@@ -23,13 +23,13 @@ export class ConversationParticipantRepository {
   async countUnread(
     conversationId: string,
     userId: string,
-    lastReadAt?: Date | null,
+    lastReadAt: Date,
   ): Promise<number> {
     return this.prisma.message.count({
       where: {
         conversationId,
         senderId: { not: userId },
-        ...(lastReadAt ? { sentAt: { gt: lastReadAt } } : {}),
+        sentAt: { gt: lastReadAt },
       },
     });
   }

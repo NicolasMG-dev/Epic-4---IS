@@ -182,13 +182,13 @@ describe('POST /appointments (integración HTTP del aviso de reserva)', () => {
   it('avisa al mentor y al titulado con notificación, push y correo', async () => {
     const block = target();
     seed.setPreference(block.mentorId, {
-      pushEnabled: false,
+      pushEnabled: true,
       emailEnabled: true,
       inAppEnabled: true,
     });
     seed.setPreference(seed.studentId, {
       pushEnabled: true,
-      emailEnabled: false,
+      emailEnabled: true,
       inAppEnabled: true,
     });
 
@@ -222,17 +222,21 @@ describe('POST /appointments (integración HTTP del aviso de reserva)', () => {
       [block.mentorId, seed.studentId].sort(),
     );
 
-    expect(seed.pushDispatches).toHaveLength(1);
-    expect(seed.pushFor(block.mentorId)).toHaveLength(0);
+    expect(seed.pushDispatches).toHaveLength(2);
+    expect(seed.pushFor(block.mentorId)[0]).toMatchObject({
+      title: 'Nueva cita reservada',
+      body: mentorBody,
+      actionUrl: '/appointments',
+    });
     expect(seed.pushFor(seed.studentId)[0]).toMatchObject({
       title: 'Nueva cita reservada',
       body: studentBody,
       actionUrl: '/appointments',
     });
 
-    expect(seed.emailDispatches).toHaveLength(1);
-    expect(seed.emailFor(seed.studentId)).toHaveLength(0);
+    expect(seed.emailDispatches).toHaveLength(2);
     const mentorEmail = seed.emailFor(block.mentorId)[0];
+    const studentEmail = seed.emailFor(seed.studentId)[0];
     expect(mentorEmail.content?.subject).toBe('Cita confirmada');
     expect(mentorEmail.content?.mjml).toContain('Cita confirmada');
     expect(mentorEmail.content?.text).toContain(`Titulado: ${studentName}`);
@@ -242,6 +246,7 @@ describe('POST /appointments (integración HTTP del aviso de reserva)', () => {
     );
     expect(mentorEmail.content?.text).toContain(`Tema: ${OVERLAP_TOPIC.name}`);
     expect(mentorEmail.content?.text).toContain('/appointments');
+    expect(studentEmail.content?.text).toContain(`Mentor: ${mentorName}`);
   });
 
   it('respeta las preferencias de correo y push sin impedir la reserva', async () => {
@@ -357,12 +362,12 @@ describe('POST /appointments (integración HTTP del aviso de reserva)', () => {
     const block = target();
     seed.setPreference(block.mentorId, {
       pushEnabled: true,
-      emailEnabled: false,
+      emailEnabled: true,
       inAppEnabled: true,
     });
     seed.setPreference(seed.studentId, {
       pushEnabled: true,
-      emailEnabled: false,
+      emailEnabled: true,
       inAppEnabled: true,
     });
     seed.failPushTimes(2);
@@ -373,7 +378,7 @@ describe('POST /appointments (integración HTTP del aviso de reserva)', () => {
     await waitForNotifications();
 
     expect(seed.inAppNotifications).toHaveLength(2);
-    expect(seed.emailDispatches).toHaveLength(0);
+    expect(seed.emailDispatches).toHaveLength(2);
     expect(seed.pushDispatches).toHaveLength(4);
     expect(pushRows()).toHaveLength(2);
     expect(
@@ -432,11 +437,11 @@ describe('POST /appointments (integración HTTP del aviso de reserva)', () => {
     const block = target();
     seed.setPreference(block.mentorId, {
       pushEnabled: true,
-      emailEnabled: false,
+      emailEnabled: true,
       inAppEnabled: true,
     });
     seed.setPreference(seed.studentId, {
-      pushEnabled: false,
+      pushEnabled: true,
       emailEnabled: true,
       inAppEnabled: true,
     });
@@ -446,8 +451,7 @@ describe('POST /appointments (integración HTTP del aviso de reserva)', () => {
     expectConfirmed(response, block.id);
     await waitForNotifications();
 
-    expect(seed.pushDispatches).toHaveLength(1);
-    expect(seed.emailDispatches).toHaveLength(1);
+    expect(seed.pushDispatches).toHaveLength(2);
     for (const dispatch of seed.pushDispatches) {
       expect(dispatch.body.length).toBeLessThanOrEqual(PUSH_TEXT_MAX_LENGTH);
       expect(dispatch.body).not.toContain(PRIVATE_MESSAGE);

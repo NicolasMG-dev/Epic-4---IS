@@ -226,12 +226,14 @@ export class MessageService {
             params.conversationId,
             recipientId,
           );
-        const count = await this.participantRepository.countUnread(
-          params.conversationId,
-          recipientId,
-          participant?.lastReadAt ?? null,
-        );
-        lastRecipientCount = Math.max(1, count);
+        if (participant?.lastReadAt) {
+          const count = await this.participantRepository.countUnread(
+            params.conversationId,
+            recipientId,
+            participant.lastReadAt,
+          );
+          lastRecipientCount = Math.max(1, count);
+        }
       }
 
       if (eligibleRecipients.length === 0) return;

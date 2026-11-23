@@ -14,13 +14,11 @@ import {
   getAccessToken,
   subscribeAccessToken,
 } from '@/shared/services/storage/access-token-storage';
-import { OfflinePassesSessionSync } from '@/shared/components/offline-passes-session-sync';
-import { PwaInstallProvider } from '@/shared/contexts/pwa-install-context';
 import { SocketProvider } from '@/modules/chat/contexts/socket-context';
 import { OfflineNavigation } from '@/shared/components/offline-navigation';
 import { MentorProfileDraftProvider } from '@/modules/mentorship';
 
-import { AppVisibilityReporter, PushSubscriptionSync } from '@/modules/notifications';
+import { AppVisibilityReporter } from '@/modules/notifications';
 
 function SessionProviders({ children }: { children: ReactNode }) {
   const [queryClient] = useState(createQueryClient);
@@ -29,7 +27,6 @@ function SessionProviders({ children }: { children: ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <AppVisibilityReporter />
-        <PushSubscriptionSync />
         <SocketProvider>
           <OfflineNavigation />
           <MentorProfileDraftProvider>{children}</MentorProfileDraftProvider>
@@ -48,10 +45,9 @@ export function Providers({ children }: { children: ReactNode }) {
     getAccessToken,
     getServerToken,
   );
+  // El cambio de identidad reinicia las vistas privadas y su caché. Las respuestas
+  // tardías de la sesión anterior solo afectan al cliente de consultas descartado.
   return (
-    <PwaInstallProvider>
-      <OfflinePassesSessionSync />
-      <SessionProviders key={token ?? 'anonymous'}>{children}</SessionProviders>
-    </PwaInstallProvider>
+    <SessionProviders key={token ?? 'anonymous'}>{children}</SessionProviders>
   );
 }

@@ -18,14 +18,10 @@ export class PushSubscriptionsRepository {
     private readonly prisma: PrismaService,
   ) {}
 
-  async upsert(
-    userId: string,
-    payload: PushSubscriptionPayload,
-  ): Promise<void> {
+  async upsert(userId: string, payload: PushSubscriptionPayload): Promise<void> {
     await this.prisma.pushSubscription.upsert({
       where: { endpoint: payload.endpoint },
       update: {
-        userId,
         p256dh: payload.keys.p256dh,
         auth: payload.keys.auth,
         userAgent: payload.userAgent,
@@ -56,9 +52,7 @@ export class PushSubscriptionsRepository {
     });
   }
 
-  async findManyByUserIds(
-    userIds: string[],
-  ): Promise<PushSubscriptionRecord[]> {
+  async findManyByUserIds(userIds: string[]): Promise<PushSubscriptionRecord[]> {
     return this.prisma.pushSubscription.findMany({
       where: { userId: { in: userIds } },
       select: {

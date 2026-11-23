@@ -36,7 +36,6 @@ import * as chatApi from "../services/chat-api";
 import type { Conversation } from "../types/conversation.types";
 
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(window.location.search),
   usePathname: () => "/chat",
   useRouter: () => ({
     replace: vi.fn(),

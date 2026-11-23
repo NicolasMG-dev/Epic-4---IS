@@ -1,5 +1,4 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { frontendBaseUrl } from '../../mail/helpers/frontend-url.js';
 import { loadMailTemplate } from '../../mail/helpers/load-mail-template.js';
 import { MailService } from '../../mail/services/mail.service.js';
 import { NotificationUserLookupRepository } from '../repositories/notification-user-lookup.repository.js';
@@ -9,7 +8,6 @@ import type { NotificationMailRenderer } from '../types/notification-mail-render
 import type { NotificationRecipientDelivery } from '../types/notification-recipient-delivery.type.js';
 import { buildRecipientName } from '../utils/build-recipient-name.js';
 import { summarizeChannelStatus } from '../utils/summarize-channel-status.js';
-import { truncateNotificationText } from '../utils/truncate-notification-text.js';
 
 @Injectable()
 export class MailDispatcherService {
@@ -31,9 +29,6 @@ export class MailDispatcherService {
     let genericTemplate: Promise<string> | undefined;
     const loadGenericTemplate = () =>
       (genericTemplate ??= loadMailTemplate('notification'));
-    const genericTitle = truncateNotificationText(title);
-    const genericBody = truncateNotificationText(body);
-    const absoluteActionUrl = this.toAbsoluteActionUrl(actionUrl);
 
     for (const userId of userIds) {
       try {
@@ -50,9 +45,9 @@ export class MailDispatcherService {
             })
           : {
               mjml: await loadGenericTemplate(),
-              subject: genericTitle,
-              text: `${genericBody}\n\nVer en UMSSY: ${absoluteActionUrl}`,
-              values: { title: genericTitle, body: genericBody, actionUrl: absoluteActionUrl },
+              subject: title,
+              text: body,
+              values: { title, body, actionUrl },
             };
 
         await this.mailService.send({
@@ -76,15 +71,5 @@ export class MailDispatcherService {
       ),
       deliveries,
     };
-  }
-
-  private toAbsoluteActionUrl(actionUrl: string): string {
-    const base = new URL(`${frontendBaseUrl()}/`);
-    try {
-      const resolved = new URL(actionUrl || '/', base);
-      return resolved.origin === base.origin ? resolved.toString() : base.toString();
-    } catch {
-      return base.toString();
-    }
   }
 }

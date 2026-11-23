@@ -12,15 +12,18 @@ import { DELETE_JOB_OFFER_TEXT, NO_COMPANY_TEXT, REOPEN_JOB_OFFER_TEXT, VACANCY_
 import { useCompanyJobOffers } from "../hooks/use-company-job-offers";
 import { useDeleteJobOffer } from "../hooks/use-delete-job-offer";
 import { useReopenJobOffer } from "../hooks/use-reopen-job-offer";
+import { useCloseJobOffer } from "../hooks/use-close-job-offer";
 import type { JobOffer } from "../types/job-offer.types";
 import type { JobOfferFilters } from "../types/job-offer-filters.types";
 import type { VacancyListProps } from "../types/vacancy-list-props.types";
 import { DEFAULT_JOB_OFFER_FILTERS } from "../utils/filter-job-offers";
+import { getCloseErrorStatus } from "../utils/to-close-error-message";
 import { ConfirmDialog } from "./confirm-dialog";
 import { JobOfferDetailsDialog } from "./job-offer-details-dialog";
 import { JobOffersPagination } from "./job-offers-pagination";
 import { VacancyCard } from "./vacancy-card";
 import { VacancyFiltersDialog } from "./vacancy-filters-dialog";
+import { CloseVacancyDialog } from "./close-vacancy-dialog";
 
 const CREATE_LINK_CLASSES = "max-md:min-h-11";
 
@@ -32,10 +35,12 @@ export function VacancyList({ scope = "published" }: VacancyListProps) {
   const [selectedOfferId, setSelectedOfferId] = useState<string | null>(null);
   const [offerToDelete, setOfferToDelete] = useState<JobOffer | null>(null);
   const [offerToReopen, setOfferToReopen] = useState<JobOffer | null>(null);
+  const [offerToClose, setOfferToClose] = useState<JobOffer | null>(null);
 
   const { companyId, offers, status, reload } = useCompanyJobOffers(filters, scope);
   const deletion = useDeleteJobOffer();
   const reopening = useReopenJobOffer();
+  const closing = useCloseJobOffer();
 
   const hasSearch = filters.search.trim() !== "";
   const hasOtherFilters =
@@ -65,7 +70,10 @@ export function VacancyList({ scope = "published" }: VacancyListProps) {
   };
 
   const isAnyDialogOpen =
-    selectedOfferId !== null || offerToDelete !== null || offerToReopen !== null;
+  selectedOfferId !== null ||
+  offerToDelete !== null ||
+  offerToReopen !== null ||
+  offerToClose !== null;
 
   const openDetails = (jobOfferId: string) => {
     if (!isAnyDialogOpen) setSelectedOfferId(jobOfferId);
@@ -101,6 +109,35 @@ export function VacancyList({ scope = "published" }: VacancyListProps) {
     reopening.mutate(
       { companyId: offerToReopen.company.id, jobOfferId: offerToReopen.id },
       { onSuccess: () => setOfferToReopen(null) },
+    );
+  };
+
+  const openCloseDialog = (offer: JobOffer) => {
+    if (!isAnyDialogOpen) setOfferToClose(offer);
+  };
+
+  const cancelCloseDialog = () => {
+    if (!closing.isPending) setOfferToClose(null);
+  };
+
+  const confirmClose = () => {
+    if (!offerToClose || closing.isPending) return;
+
+    closing.mutate(
+      {
+        companyId: offerToClose.company.id,
+        jobOfferId: offerToClose.id,
+      },
+      {
+        onSuccess: () => {
+          setOfferToClose(null);
+        },
+        onError: (error) => {
+          if (getCloseErrorStatus(error) === 409) {
+            setOfferToClose(null);
+          }
+        },
+      },
     );
   };
 
@@ -147,38 +184,30 @@ export function VacancyList({ scope = "published" }: VacancyListProps) {
 
   return (
     <section aria-label={text.ariaLabel} className="space-y-4">
-      {isHistory ? null : (
-        <header>
-          <h2 className="text-xl font-bold text-ink">{VACANCY_LIST_TEXT.published.title}</h2>
-          <p className="mt-1 text-sm text-text-secondary">{VACANCY_LIST_TEXT.published.subtitle}</p>
-        </header>
-      )}
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
         <Input
           type="search"
           placeholder="Buscar por título de vacante..."
           aria-label="Buscar por título de vacante"
           value={filters.search}
           onChange={(event) => update("search", event.target.value)}
-          className="w-full max-md:h-11 sm:max-w-sm sm:flex-1"
+          className="w-full max-md:h-11 sm:max-w-sm"
         />
-        <div className="flex flex-wrap gap-3 sm:ml-auto">
-          <VacancyFiltersDialog
-            filters={filters}
-            onChange={update}
-            onReset={reset}
-            showStatusFilter={isHistory}
-          />
-          {isEmptyWithoutFilters ? null : (
-            <Link
-              href={"/recruiters/job-offers/new"}
-              className={cn(buttonVariants({ variant: "outline" }), CREATE_LINK_CLASSES)}
-            >
-              <Plus aria-hidden="true" />
-              Crear nueva vacante
-            </Link>
-          )}
-        </div>
+        <VacancyFiltersDialog
+          filters={filters}
+          onChange={update}
+          onReset={reset}
+          showStatusFilter={isHistory}
+        />
+        {isEmptyWithoutFilters ? null : (
+          <Link
+            href={"/recruiters/job-offers/new"}
+            className={cn(buttonVariants({ variant: "outline" }), CREATE_LINK_CLASSES)}
+          >
+            <Plus aria-hidden="true" />
+            Crear nueva vacante
+          </Link>
+        )}
       </div>
 
       {offers.length === 0 ? (
@@ -207,6 +236,7 @@ export function VacancyList({ scope = "published" }: VacancyListProps) {
                 onDetails={openDetails}
                 showStatus={isHistory}
                 onReopen={isHistory ? openReopenDialog : undefined}
+                onClose={openCloseDialog}
                 onDelete={openDeleteDialog}
               />
             ))}
@@ -226,6 +256,13 @@ export function VacancyList({ scope = "published" }: VacancyListProps) {
           onClose={() => setSelectedOfferId(null)}
         />
       ) : null}
+
+      <CloseVacancyDialog
+        offer={offerToClose}
+        isBusy={closing.isPending}
+        onConfirm={confirmClose}
+        onCancel={cancelCloseDialog}
+      />
 
       <ConfirmDialog
         isOpen={offerToDelete !== null}

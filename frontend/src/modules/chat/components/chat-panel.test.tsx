@@ -39,7 +39,6 @@ vi.mock("@/shared/contexts/auth-context", () => ({
 }));
 
 vi.mock("next/navigation", () => ({
-  useSearchParams: () => new URLSearchParams(window.location.search),
   usePathname: () => "/dashboard",
   useRouter: () => ({
     replace: vi.fn(),
