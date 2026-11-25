@@ -391,7 +391,7 @@ describe("ChatPanel", () => {
         viewport.dispatchEvent(new Event("resize"));
       });
       expect(dock.style.getPropertyValue("--chat-dock-height")).toBe("420px");
-      expect(dock.style.getPropertyValue("--chat-dock-top")).toBe("60px");
+      expect(dock.style.getPropertyValue("--chat-dock-bottom")).toBe(`${window.innerHeight - 420 - 60}px`);
     } finally {
       vi.unstubAllGlobals();
     }

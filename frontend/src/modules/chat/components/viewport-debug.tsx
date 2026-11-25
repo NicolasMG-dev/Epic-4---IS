@@ -17,7 +17,7 @@ export function ViewportDebug() {
         `#${events} ${source}`,
         `vv h=${vv?.height.toFixed(0)} top=${vv?.offsetTop.toFixed(0)} pageTop=${vv?.pageTop.toFixed(0)}`,
         `innerH=${window.innerHeight} clientH=${document.documentElement.clientHeight} scrollY=${window.scrollY.toFixed(0)}`,
-        `dock top=${dockRect?.top.toFixed(0)} h=${dockRect?.height.toFixed(0)} var=${dock?.style.getPropertyValue("--chat-dock-height")}`,
+        `dock top=${dockRect?.top.toFixed(0)} h=${dockRect?.height.toFixed(0)} var=${dock?.style.getPropertyValue("--chat-dock-height")} bottom=${dock?.style.getPropertyValue("--chat-dock-bottom")}`,
         `active=${active?.tagName} bottom=${activeRect?.bottom.toFixed(0)}`,
       ]);
     };
