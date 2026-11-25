@@ -367,6 +367,35 @@ describe("ChatPanel", () => {
       expect(sentCalls()).toHaveLength(1);
     },
   );
+
+  it("follows the visible area of the screen while open so the input stays above the keyboard", () => {
+    const viewport = Object.assign(new EventTarget(), { height: 800, offsetTop: 0 });
+    vi.stubGlobal("visualViewport", viewport);
+
+    try {
+      render(
+        <MessagingUiProvider>
+          <ChatPanel roles={["mentor"]} />
+          <ChatDock />
+        </MessagingUiProvider>,
+      );
+      const dock = screen.getByTestId("chat-dock");
+      expect(dock.style.getPropertyValue("--chat-dock-height")).toBe("100dvh");
+
+      fireEvent.click(screen.getByRole("button", { name: "Abrir mensajes rápidos" }));
+      expect(dock.style.getPropertyValue("--chat-dock-height")).toBe("800px");
+
+      act(() => {
+        viewport.height = 420;
+        viewport.offsetTop = 60;
+        viewport.dispatchEvent(new Event("resize"));
+      });
+      expect(dock.style.getPropertyValue("--chat-dock-height")).toBe("420px");
+      expect(dock.style.getPropertyValue("--chat-dock-top")).toBe("60px");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
 });
 
 vi.mock('../hooks/use-chat-connection', () => ({
