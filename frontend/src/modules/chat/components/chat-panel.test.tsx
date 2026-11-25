@@ -391,7 +391,7 @@ describe("ChatPanel", () => {
         viewport.dispatchEvent(new Event("resize"));
       });
       expect(dock.style.getPropertyValue("--chat-dock-height")).toBe("420px");
-      expect(dock.style.getPropertyValue("--chat-dock-bottom")).toBe(`${window.innerHeight - 420 - 60}px`);
+      expect(dock.style.getPropertyValue("--chat-dock-top")).toBe("60px");
     } finally {
       vi.unstubAllGlobals();
     }
@@ -435,6 +435,39 @@ describe("ChatPanel", () => {
       expect(document.documentElement.style.overflow).toBe("");
     } finally {
       HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("discounts the browser toolbar that Chrome still counts as hidden when the keyboard opens", () => {
+    const viewport = Object.assign(new EventTarget(), { height: 717, offsetTop: 0 });
+    vi.stubGlobal("visualViewport", viewport);
+    vi.stubGlobal("innerWidth", 411);
+    vi.stubGlobal("innerHeight", 717);
+
+    try {
+      render(
+        <MessagingUiProvider>
+          <ChatPanel roles={["mentor"]} />
+          <ChatDock />
+        </MessagingUiProvider>,
+      );
+      fireEvent.click(screen.getByRole("button", { name: "Abrir mensajes rápidos" }));
+      const dock = screen.getByTestId("chat-dock");
+
+      act(() => {
+        vi.stubGlobal("innerHeight", 773);
+        viewport.height = 773;
+        window.dispatchEvent(new Event("resize"));
+      });
+      expect(dock.style.getPropertyValue("--chat-dock-height")).toBe("773px");
+
+      act(() => {
+        viewport.height = 395;
+        viewport.dispatchEvent(new Event("resize"));
+      });
+      expect(dock.style.getPropertyValue("--chat-dock-height")).toBe("339px");
+    } finally {
       vi.unstubAllGlobals();
     }
   });

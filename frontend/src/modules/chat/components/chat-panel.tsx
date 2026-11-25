@@ -73,13 +73,10 @@ export function ChatDock() {
   if (!ui || !canChat || pathname === "/chat") return null;
   const viewportStyle = {
     "--chat-dock-height": isOpen && viewportBox ? `${viewportBox.height}px` : "100dvh",
-    "--chat-dock-bottom":
-      isOpen && viewportBox
-        ? `${Math.max(0, viewportBox.layoutHeight - viewportBox.height - viewportBox.offsetTop)}px`
-        : "0px",
+    "--chat-dock-top": isOpen && viewportBox ? `${viewportBox.offsetTop}px` : "0px",
   } as CSSProperties;
   return (
-    <div ref={dockRef} style={viewportStyle} data-testid="chat-dock" className={cn("fixed inset-x-0 bottom-(--chat-dock-bottom) z-50 h-(--chat-dock-height) w-full overflow-hidden bg-surface md:sticky md:inset-auto md:top-app-header md:h-app-sidebar md:w-auto md:self-start md:border-l md:border-sidebar-border md:transition-[width] md:duration-300 md:ease-out", isOpen ? "block md:w-chat-dock" : "hidden md:block md:w-0")}>
+    <div ref={dockRef} style={viewportStyle} data-testid="chat-dock" className={cn("fixed inset-x-0 top-(--chat-dock-top) z-50 h-(--chat-dock-height) w-full overflow-hidden bg-surface md:sticky md:inset-auto md:top-app-header md:h-app-sidebar md:w-auto md:self-start md:border-l md:border-sidebar-border md:transition-[width] md:duration-300 md:ease-out", isOpen ? "block md:w-chat-dock" : "hidden md:block md:w-0")}>
       {isOpen ? <ViewportDebug /> : null}
       <div className="size-full min-w-0 overflow-hidden" inert={!isOpen} aria-hidden={!isOpen || undefined}>
         <aside id={DOCK_ID} aria-label="Mensajes rápidos" className="flex size-full flex-col border-l-0 border-sidebar-border bg-surface md:h-app-sidebar md:w-chat-dock md:border-l" onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.stopPropagation(); ui.setIsPanelOpen(false); } }}>
