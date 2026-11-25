@@ -16,6 +16,7 @@ import type { ChatPanelProps } from "../types/chat-panel-props.types";
 
 const TRIGGER_ID = "quick-messages-trigger";
 const DOCK_ID = "quick-messages-dock";
+const MOBILE_QUERY = "(max-width: 767px)";
 const ChatWorkspace = dynamic(() => import("./chat-workspace").then((module) => module.ChatWorkspace), { loading: () => <p role="status" className="p-6 text-sm text-text-secondary">Cargando mensajes…</p> });
 
 export function ChatPanel({ roles }: ChatPanelProps) {
@@ -38,6 +39,9 @@ export function ChatDock() {
   const setLauncherId = ui?.setLauncherId;
   const launcherRef = useRef<string | null>(null);
   const viewportBox = useVisualViewportBox();
+  const dockRef = useRef<HTMLDivElement>(null);
+  const viewportHeight = viewportBox?.height;
+  const viewportTop = viewportBox?.offsetTop;
   useEffect(() => { launcherRef.current = launcherId; }, [launcherId]);
   useEffect(() => { if (pathname === "/chat" || !canChat) setIsPanelOpen?.(false); }, [pathname, canChat, setIsPanelOpen]);
   useEffect(() => {
@@ -49,13 +53,29 @@ export function ChatDock() {
     }
     wasOpen.current = isOpen;
   }, [isOpen, setLauncherId]);
+  useEffect(() => {
+    if (!isOpen || !window.matchMedia?.(MOBILE_QUERY).matches) return;
+    const root = document.documentElement;
+    const previousOverflow = root.style.overflow;
+    root.style.overflow = "hidden";
+    return () => {
+      root.style.overflow = previousOverflow;
+    };
+  }, [isOpen]);
+  useEffect(() => {
+    if (!isOpen || viewportHeight === undefined) return;
+    const active = document.activeElement;
+    if (!(active instanceof HTMLElement) || !dockRef.current?.contains(active)) return;
+    const frame = requestAnimationFrame(() => active.scrollIntoView({ block: "nearest" }));
+    return () => cancelAnimationFrame(frame);
+  }, [isOpen, viewportHeight, viewportTop]);
   if (!ui || !canChat || pathname === "/chat") return null;
   const viewportStyle = {
     "--chat-dock-height": isOpen && viewportBox ? `${viewportBox.height}px` : "100dvh",
     "--chat-dock-top": isOpen && viewportBox ? `${viewportBox.offsetTop}px` : "0px",
   } as CSSProperties;
   return (
-    <div style={viewportStyle} data-testid="chat-dock" className={cn("fixed inset-x-0 top-(--chat-dock-top) z-50 h-(--chat-dock-height) w-full overflow-hidden bg-surface md:sticky md:inset-auto md:top-app-header md:h-app-sidebar md:w-auto md:self-start md:border-l md:border-sidebar-border md:transition-[width] md:duration-300 md:ease-out", isOpen ? "block md:w-chat-dock" : "hidden md:block md:w-0")}>
+    <div ref={dockRef} style={viewportStyle} data-testid="chat-dock" className={cn("fixed inset-x-0 top-(--chat-dock-top) z-50 h-(--chat-dock-height) w-full overflow-hidden bg-surface md:sticky md:inset-auto md:top-app-header md:h-app-sidebar md:w-auto md:self-start md:border-l md:border-sidebar-border md:transition-[width] md:duration-300 md:ease-out", isOpen ? "block md:w-chat-dock" : "hidden md:block md:w-0")}>
       <div className="size-full min-w-0 overflow-hidden" inert={!isOpen} aria-hidden={!isOpen || undefined}>
         <aside id={DOCK_ID} aria-label="Mensajes rápidos" className="flex size-full flex-col border-l-0 border-sidebar-border bg-surface md:h-app-sidebar md:w-chat-dock md:border-l" onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.stopPropagation(); ui.setIsPanelOpen(false); } }}>
           <header className="flex items-center justify-between gap-3 border-b border-border bg-sidebar p-4">
