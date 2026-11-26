@@ -12,12 +12,11 @@ import { useAuth } from "@/shared/contexts/auth-context";
 import { getRouteRoles } from "@/shared/utils/get-route-roles";
 import { useMessagingUi } from "../contexts/messaging-ui-context";
 import { useVisualViewportBox } from "../hooks/use-visual-viewport-box";
-import { ViewportDebug } from "./viewport-debug";
 import type { ChatPanelProps } from "../types/chat-panel-props.types";
 
 const TRIGGER_ID = "quick-messages-trigger";
 const DOCK_ID = "quick-messages-dock";
-const MOBILE_QUERY = "(max-width: 767px)";
+const MOBILE_QUERY = "(width < 48rem)";
 const ChatWorkspace = dynamic(() => import("./chat-workspace").then((module) => module.ChatWorkspace), { loading: () => <p role="status" className="p-6 text-sm text-text-secondary">Cargando mensajes…</p> });
 
 export function ChatPanel({ roles }: ChatPanelProps) {
@@ -55,12 +54,32 @@ export function ChatDock() {
     wasOpen.current = isOpen;
   }, [isOpen, setLauncherId]);
   useEffect(() => {
-    if (!isOpen || !window.matchMedia?.(MOBILE_QUERY).matches) return;
+    if (!isOpen) return;
+    const mobileQuery = window.matchMedia?.(MOBILE_QUERY);
+    if (!mobileQuery) return;
     const root = document.documentElement;
-    const previousOverflow = root.style.overflow;
-    root.style.overflow = "hidden";
-    return () => {
+    let previousOverflow: string | undefined;
+
+    function unlockScroll() {
+      if (previousOverflow === undefined) return;
       root.style.overflow = previousOverflow;
+      previousOverflow = undefined;
+    }
+
+    const syncScrollLock = () => {
+      if (!mobileQuery.matches) {
+        unlockScroll();
+      } else if (previousOverflow === undefined) {
+        previousOverflow = root.style.overflow;
+        root.style.overflow = "hidden";
+      }
+    };
+
+    mobileQuery.addEventListener("change", syncScrollLock);
+    syncScrollLock();
+    return () => {
+      mobileQuery.removeEventListener("change", syncScrollLock);
+      unlockScroll();
     };
   }, [isOpen]);
   useEffect(() => {
@@ -77,7 +96,6 @@ export function ChatDock() {
   } as CSSProperties;
   return (
     <div ref={dockRef} style={viewportStyle} data-testid="chat-dock" className={cn("fixed inset-x-0 top-(--chat-dock-top) z-50 h-(--chat-dock-height) w-full overflow-hidden bg-surface md:sticky md:inset-auto md:top-app-header md:h-app-sidebar md:w-auto md:self-start md:border-l md:border-sidebar-border md:transition-[width] md:duration-300 md:ease-out", isOpen ? "block md:w-chat-dock" : "hidden md:block md:w-0")}>
-      {isOpen ? <ViewportDebug /> : null}
       <div className="size-full min-w-0 overflow-hidden" inert={!isOpen} aria-hidden={!isOpen || undefined}>
         <aside id={DOCK_ID} aria-label="Mensajes rápidos" className="flex size-full flex-col border-l-0 border-sidebar-border bg-surface md:h-app-sidebar md:w-chat-dock md:border-l" onKeyDown={(event) => { if (event.key === "Escape" && !event.defaultPrevented) { event.stopPropagation(); ui.setIsPanelOpen(false); } }}>
           <header className="flex items-center justify-between gap-3 border-b border-border bg-sidebar p-4">
