@@ -33,6 +33,7 @@ const { form, publication, leaveGuard } = vi.hoisted(() => ({
     handleRequirementsContinue: vi.fn(),
     goBack: vi.fn(),
     reset: vi.fn(),
+    discardDraft: vi.fn(),
   },
   publication: {
     status: "idle",
@@ -192,6 +193,7 @@ describe("RegisterVacancyView", () => {
 
     expect(screen.getByText("¿Salir sin publicar?")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Salir" }));
+    expect(form.discardDraft).toHaveBeenCalledOnce();
     expect(leaveGuard.confirmLeave).toHaveBeenCalledOnce();
 
     fireEvent.click(screen.getByRole("button", { name: "Quedarme" }));
@@ -232,11 +234,15 @@ describe("RegisterVacancyView", () => {
 
     expect(form.goBack).toHaveBeenCalledOnce();
   });
-  it("al publicar una vacante nueva no redirige ni notifica desde la vista", () => {
+  it("al publicar una vacante nueva descarta el borrador sin redirigir ni notificar", () => {
     setStep(3, VALID_CONDITIONS, true);
     render(<RegisterVacancyView />);
 
-    expect(publishOptions.current?.onSuccess).toBeUndefined();
+    publishOptions.current?.onSuccess?.();
+
+    expect(form.discardDraft).toHaveBeenCalledOnce();
+    expect(toast.success).not.toHaveBeenCalled();
+    expect(push).not.toHaveBeenCalled();
   });
 
   it("al guardar una edición avisa con una notificación y vuelve al listado", () => {
@@ -245,6 +251,7 @@ describe("RegisterVacancyView", () => {
 
     publishOptions.current?.onSuccess?.();
 
+    expect(form.discardDraft).toHaveBeenCalledOnce();
     expect(toast.success).toHaveBeenCalledWith("Vacante actualizada correctamente", {
       position: "top-center",
       duration: 5000,

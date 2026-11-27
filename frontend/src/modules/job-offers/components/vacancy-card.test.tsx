@@ -43,6 +43,21 @@ describe("VacancyCard", () => {
     expect(container.querySelectorAll("svg.lucide-calendar-days")).toHaveLength(2);
   });
 
+  it("evita que los íconos de calendario se encojan cuando el texto baja de línea", () => {
+    const { container } = renderCard();
+
+    container.querySelectorAll("svg.lucide-calendar-days").forEach((icon) => {
+      expect(icon).toHaveClass("shrink-0");
+    });
+  });
+
+  it("reserva un ancho mínimo al título para que no se muestre letra por letra", () => {
+    renderCard();
+
+    expect(screen.getByRole("heading", { level: 3 })).toHaveClass("flex-1", "basis-48");
+    expect(screen.getByRole("heading", { level: 3 }).parentElement).toHaveClass("flex-wrap");
+  });
+
   it("muestra la fecha de expiración", () => {
     renderCard({ offer: buildJobOffer({ expiresAt: "2026-12-31T03:59:00.000Z" }) });
 

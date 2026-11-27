@@ -306,6 +306,7 @@ export function VacancyList({ scope = "published" }: VacancyListProps) {
         busyLabel={DELETE_JOB_OFFER_TEXT.busy}
         confirmVariant="destructive"
         isBusy={deletion.isPending}
+        closeOnOverlayClick
         onConfirm={confirmDelete}
         onCancel={closeDeleteDialog}
       />

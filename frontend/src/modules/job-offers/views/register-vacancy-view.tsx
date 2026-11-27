@@ -44,16 +44,17 @@ export function RegisterVacancyView({ jobOfferId }: RegisterVacancyViewProps) {
     handleRequirementsContinue,
     goBack,
     reset,
+    discardDraft,
   } = useJobOfferForm(jobOfferId);
   const expiration = useExpirationDate();
 
   const publication = usePublishJobOffer(jobOfferId, {
-    onSuccess: isEditMode
-      ? () => {
-          toast.success(EDIT_MESSAGES.success, TOAST_OPTIONS);
-          router.push("/recruiters");
-        }
-      : undefined,
+    onSuccess: () => {
+      discardDraft();
+      if (!isEditMode) return;
+      toast.success(EDIT_MESSAGES.success, TOAST_OPTIONS);
+      router.push("/recruiters");
+    },
   });
   const leaveGuard = useLeaveGuard(hasUnsavedChanges && !publication.isSuccess);
   const [isDiscardDialogOpen, setIsDiscardDialogOpen] = useState(false);
@@ -82,6 +83,7 @@ export function RegisterVacancyView({ jobOfferId }: RegisterVacancyViewProps) {
 
   const handleDiscard = () => {
     setIsDiscardDialogOpen(false);
+    discardDraft();
     publication.reset();
     reset();
     expiration.resetExpiration();
@@ -202,7 +204,10 @@ export function RegisterVacancyView({ jobOfferId }: RegisterVacancyViewProps) {
         description={leaveText.description}
         confirmLabel={leaveText.confirm}
         cancelLabel={leaveText.cancel}
-        onConfirm={leaveGuard.confirmLeave}
+        onConfirm={() => {
+          discardDraft();
+          leaveGuard.confirmLeave();
+        }}
         onCancel={leaveGuard.cancelLeave}
       />
     </main>

@@ -43,7 +43,7 @@ export function ConfirmDialog({
         </AlertDialogHeader>
         <AlertDialogFooter>
           {cancelLabel ? (
-            <AlertDialogCancel disabled={isBusy} className="max-md:min-h-11">
+            <AlertDialogCancel disabled={isBusy} className="hover:bg-border max-md:min-h-11">
               {cancelLabel}
             </AlertDialogCancel>
           ) : null}

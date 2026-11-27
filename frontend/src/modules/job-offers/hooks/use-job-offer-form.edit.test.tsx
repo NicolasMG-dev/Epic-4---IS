@@ -42,6 +42,7 @@ describe("useJobOfferForm en modo edición", () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     clearAccessToken();
+    window.sessionStorage.clear();
   });
 
   it("carga la vacante de la empresa y arranca sin cambios pendientes", async () => {

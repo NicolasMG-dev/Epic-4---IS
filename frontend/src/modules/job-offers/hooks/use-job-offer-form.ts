@@ -10,6 +10,12 @@ import type { Modality } from "../types/modality.types";
 import type { UpdateVacancyField } from "../types/update-vacancy-field.types";
 import type { VacancyErrors } from "../types/vacancy-errors.types";
 import {
+    buildVacancyDraftKey,
+    clearVacancyDraft,
+    readVacancyDraft,
+    saveVacancyDraft,
+} from "../utils/vacancy-draft-storage";
+import {
     INFORMATION_FIELDS_ORDER,
     isFieldEmpty,
     validateInformation,
@@ -80,11 +86,19 @@ export function useJobOfferForm(jobOfferId?: string) {
     jobOfferId ?? null,
   );
   const baseline = details.offer ? toConditions(details.offer) : null;
+  const draftKey = company.id ? buildVacancyDraftKey(company.id, jobOfferId) : null;
   const [loadedOfferId, setLoadedOfferId] = useState<string | null>(null);
   if (details.offer && details.offer.id !== loadedOfferId) {
         setLoadedOfferId(details.offer.id);
-        setConditions(toConditions(details.offer));
+        setConditions((draftKey ? readVacancyDraft(draftKey) : null) ?? toConditions(details.offer));
     }
+  const [restoredDraftKey, setRestoredDraftKey] = useState<string | null>(null);
+  if (!jobOfferId && draftKey && draftKey !== restoredDraftKey) {
+        setRestoredDraftKey(draftKey);
+        const draft = readVacancyDraft(draftKey);
+        if (draft) setConditions(draft);
+    }
+  const isDraftReady = jobOfferId ? loadedOfferId === jobOfferId : draftKey !== null && restoredDraftKey === draftKey;
 
   useEffect(() => {
         if (readStepFromUrl() > 1) writeStepToUrl(1, "replace");
@@ -177,6 +191,16 @@ export function useJobOfferForm(jobOfferId?: string) {
               (field) => !isFieldEmpty(field, conditions),
           );
 
+  useEffect(() => {
+        if (!draftKey || !isDraftReady) return;
+        if (hasUnsavedChanges) saveVacancyDraft(draftKey, conditions);
+        else clearVacancyDraft(draftKey);
+    }, [draftKey, isDraftReady, hasUnsavedChanges, conditions]);
+
+  function discardDraft() {
+        if (draftKey) clearVacancyDraft(draftKey);
+    }
+
   function reset() {
         setConditions(baseline ?? INITIAL_CONDITIONS);
         setErrors({});
@@ -200,5 +224,6 @@ export function useJobOfferForm(jobOfferId?: string) {
         goNext,
         goBack,
         reset,
+        discardDraft,
     };
 }

@@ -160,6 +160,27 @@ describe("VacancyList en el portal de empresa", () => {
     expect(remove).not.toHaveBeenCalled();
   });
 
+  it("resalta Cancelar al pasar el cursor y cierra la confirmación al hacer clic fuera sin eliminar", async () => {
+    const user = userEvent.setup();
+    mockOffers();
+    const remove = vi.spyOn(jobOffersService, "remove");
+    renderWithQuery(<VacancyList />);
+
+    await user.click(
+      await screen.findByRole("button", { name: "Eliminar vacante Ingeniero Backend" }),
+    );
+    const dialog = await screen.findByRole("alertdialog");
+    expect(within(dialog).getByRole("button", { name: "Cancelar" })).toHaveClass("hover:bg-border");
+    const overlay = document.querySelector<HTMLElement>('[data-slot="alert-dialog-overlay"]');
+    if (!overlay) throw new Error("No se encontró el fondo del diálogo");
+
+    await user.click(overlay);
+
+    await waitFor(() => expect(screen.queryByRole("alertdialog")).not.toBeInTheDocument());
+    expect(remove).not.toHaveBeenCalled();
+    expect(screen.getByRole("button", { name: "Eliminar vacante Ingeniero Backend" })).toBeInTheDocument();
+  });
+
   it("elimina la vacante, cierra el modal, avisa y refresca la lista", async () => {
     const user = userEvent.setup();
     const getOffers = mockOffers();

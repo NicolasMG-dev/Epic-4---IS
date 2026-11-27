@@ -144,6 +144,7 @@ describe("Registrar vacante: wizard completo conectado al backend", () => {
     vi.clearAllMocks();
     vi.unstubAllEnvs();
     clearAccessToken();
+    window.sessionStorage.clear();
   });
 
   it("publica la vacante con el contrato exacto y luego limpia el formulario", async () => {

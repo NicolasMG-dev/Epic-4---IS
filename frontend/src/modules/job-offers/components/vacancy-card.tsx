@@ -29,8 +29,8 @@ export function VacancyCard({
       )}
     >
       <div className="min-w-0 flex-1">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
-          <h3 className="min-w-0 text-base font-bold text-ink">
+        <div className="flex flex-wrap items-start justify-between gap-x-4 gap-y-2">
+          <h3 className="min-w-0 flex-1 basis-48 text-base font-bold text-ink">
             <Button
               type="button"
               variant="link"
@@ -50,14 +50,14 @@ export function VacancyCard({
               </Badge>
             ) : null}
             <p className="inline-flex items-center gap-1.5">
-              <CalendarDays className="size-4" aria-hidden="true" />
+              <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
               Expiración: {offer.expiresAt ? formatPublicationDate(offer.expiresAt) : "Sin fecha de cierre"}
             </p>
           </div>
         </div>
         <p className="mt-1 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-text-secondary">
           <span className="inline-flex items-center gap-1.5">
-            <CalendarDays className="size-4" aria-hidden="true" />
+            <CalendarDays className="size-4 shrink-0" aria-hidden="true" />
             <span>
               Publicado: {formatPublicationDate(offer.publishedAt)} · {formatOpenTime(offer.publishedAt)}
             </span>

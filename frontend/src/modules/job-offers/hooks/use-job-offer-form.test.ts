@@ -28,6 +28,7 @@ describe("useJobOfferForm", () => {
     cleanup();
     document.body.innerHTML = "";
     vi.clearAllMocks();
+    window.sessionStorage.clear();
   });
 
   it("empieza en el paso 1 con el estado vacío", () => {

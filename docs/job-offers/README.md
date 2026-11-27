@@ -212,3 +212,4 @@ Tables `job_offers`, `job_offer_skills` and the catalogs `job_offer_statuses`, `
 - Closing date when publishing, automatic close every 5 minutes and manual close with confirmation.
 - Alert to the applicants who accept it when a vacancy is published, following each person's alert preference.
 - Active offer counts per company (`JobOffersService.countActiveOffersByCompany`) for the featured companies of the landing page.
+- The publish and edit vacancy form keeps an unsaved draft in `sessionStorage` per company and vacancy, so the changes come back after the session closes by inactivity and the user signs in again. Publishing, discarding or leaving without saving removes the draft.
